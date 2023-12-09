@@ -103,6 +103,7 @@ public class PingOneIdentityProviderHandlerNode extends SocialProviderHandlerNod
 
   private final Config config;
   private final Handler handler;
+  private String codeChallenge;
 
   /**
    * Constructor.
@@ -137,6 +138,20 @@ public class PingOneIdentityProviderHandlerNode extends SocialProviderHandlerNod
     Action action = super.process(context);
     for (Callback callback : action.callbacks) {
       if (callback instanceof RedirectCallback) {
+        RedirectCallback redirectCallback = (RedirectCallback) callback;
+        String redirectUrl = redirectCallback.getRedirectUrl();
+
+        URI uri = URI.create(redirectUrl);
+        String query = uri.getQuery();
+        String[] queryList = query.split("&");
+
+        for (String queryItem : queryList) {
+          String[] keyValue = queryItem.split("=");
+          if(keyValue[0].equals("code_challenge")) {
+            codeChallenge = keyValue[1];
+          }
+        }
+
         // send PAR request
         String parRequestUri;
         try {
@@ -151,8 +166,7 @@ public class PingOneIdentityProviderHandlerNode extends SocialProviderHandlerNod
         }
 
         // update the RedirectCallback to include PAR URI
-        RedirectCallback redirectCallback = (RedirectCallback) callback;
-        String redirectUrl = redirectCallback.getRedirectUrl();
+
         String parRedirectUrl = redirectUrl + "&request_uri=" + parRequestUri;
         redirectCallback.setRedirectUrl(parRedirectUrl);
       }
@@ -194,6 +208,8 @@ public class PingOneIdentityProviderHandlerNode extends SocialProviderHandlerNod
     form.add("response_type", "code");
     form.add("redirect_uri", config.redirectURI());
     form.add("scope", "openid profile email address phone");
+    form.add("code_challenge", codeChallenge);
+    form.add("code_challenge_method", "S256");
     if (!config.acrValues().isEmpty()) {
       form.add("acr_values", String.join(" ", config.acrValues()));
     }
@@ -408,11 +424,10 @@ public class PingOneIdentityProviderHandlerNode extends SocialProviderHandlerNod
     public String issuer() {
       return baseUrl;
     }
-
-    // TODO: remove this to enable PCKE if we can get it working with PAR
+    
     @Override
     public PkceMethod pkceMethod() {
-      return PkceMethod.NONE;
+      return PkceMethod.S256;
     }
 
     @Override
