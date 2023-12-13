@@ -18,6 +18,7 @@ package org.forgerock.openam.auth.nodes;
 
 import static org.forgerock.http.protocol.Responses.noopExceptionAsyncFunction;
 import static org.forgerock.openam.social.idp.SocialIdPScriptContext.SOCIAL_IDP_PROFILE_TRANSFORMATION;
+import static org.forgerock.openam.social.idp.SocialIdPScriptContext.SOCIAL_IDP_PROFILE_TRANSFORMATION_NAME;
 import static org.forgerock.util.CloseSilentlyAsyncFunction.closeSilently;
 import static org.forgerock.util.Closeables.closeSilentlyAsync;
 
@@ -63,6 +64,7 @@ import org.forgerock.openam.scripting.domain.EvaluatorVersion;
 import org.forgerock.openam.scripting.domain.Script;
 import org.forgerock.openam.scripting.domain.ScriptException;
 import org.forgerock.openam.scripting.domain.ScriptingLanguage;
+import org.forgerock.openam.scripting.persistence.config.consumer.ScriptContext;
 import org.forgerock.openam.sm.annotations.adapters.Password;
 import org.forgerock.openam.sm.validation.URLValidator;
 import org.forgerock.openam.social.idp.ClientAuthenticationMethod;
@@ -83,7 +85,7 @@ import org.slf4j.LoggerFactory;
 /**
  * This node is intended to be used to provide a simple OIDC identity provider connection between ForgeRock AM and
  * PingOne. This provides a standards-based mechanism for executing DaVinci flow. The node extends {@link
- * SocialProviderHandlerNode} but has a couple of differences.
+ * AbstractSocialProviderHandlerNode} but has a couple of differences.
  * <p>
  * First, the identity provider information is configured directly in the node rather than needing to be defined
  * elsewhere in AM. This also means that the "Select Identity Provider" node doesn't need to be used before this node.
@@ -94,16 +96,90 @@ import org.slf4j.LoggerFactory;
  * PAR request that includes the node state. This provides a secure mechanism for passing context from ForgeRock to
  * PingOne that can be used in DaVinci flows.
  */
-@Node.Metadata(outcomeProvider = SocialProviderHandlerNode.SocialAuthOutcomeProvider.class,
+@Node.Metadata(outcomeProvider = AbstractSocialProviderHandlerNode.SocialAuthOutcomeProvider.class,
     configClass = PingOneIdentityProviderHandlerNode.Config.class,
     tags = {"social", "federation", "platform"})
-public class PingOneIdentityProviderHandlerNode extends SocialProviderHandlerNode {
+public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHandlerNode {
 
   private static final Logger logger = LoggerFactory.getLogger(PingOneIdentityProviderHandlerNode.class);
 
+  private static final Script DEFAULT_IDM_TRANSFORMATION_SCRIPT;
+  private static final Script DEFAULT_AM_TRANSFORMATION_SCRIPT;
+
   private final Config config;
   private final Handler handler;
-  private String codeChallenge;
+  private final Script transformationScript;
+
+  static {
+    try {
+      // Initialize the default scripts for IDM and AM. These are exactly the same except that they use the appropriate
+      // attributes defined here: https://backstage.forgerock.com/docs/idcloud/latest/identities/user-identity-properties-attributes-reference.html
+      String idmScript = "import static org.forgerock.json.JsonValue.field\n"
+          + "import static org.forgerock.json.JsonValue.json\n"
+          + "import static org.forgerock.json.JsonValue.object\n"
+          + "\n"
+          + "import org.forgerock.json.JsonValue\n"
+          + "\n"
+          + "JsonValue managedUser = json(object(\n"
+          + "        field(\"userName\", normalizedProfile.username),\n"
+          + "        field(\"aliasList\", selectedIdp + '-' + normalizedProfile.id.asString())))\n"
+          + "\n"
+          + "if (normalizedProfile.email.isNotNull()) managedUser.put(\"mail\", normalizedProfile.email)\n"
+          + "if (normalizedProfile.phone.isNotNull()) managedUser.put(\"telephoneNumber\", normalizedProfile.phone)\n"
+          + "if (normalizedProfile.givenName.isNotNull()) managedUser.put(\"givenName\", normalizedProfile.givenName)\n"
+          + "if (normalizedProfile.familyName.isNotNull()) managedUser.put(\"sn\", normalizedProfile.familyName)\n"
+          + "if (normalizedProfile.photoUrl.isNotNull()) managedUser.put(\"profileImage\", normalizedProfile.photoUrl)\n"
+          + "if (normalizedProfile.postalAddress.isNotNull()) managedUser.put(\"postalAddress\", normalizedProfile.postalAddress)\n"
+          + "if (normalizedProfile.addressLocality.isNotNull()) managedUser.put(\"city\", normalizedProfile.addressLocality)\n"
+          + "if (normalizedProfile.addressRegion.isNotNull()) managedUser.put(\"stateProvince\", normalizedProfile.addressRegion)\n"
+          + "if (normalizedProfile.postalCode.isNotNull()) managedUser.put(\"postalCode\", normalizedProfile.postalCode)\n"
+          + "if (normalizedProfile.country.isNotNull()) managedUser.put(\"country\", normalizedProfile.country)\n"
+          + "\n"
+          + "return managedUser";
+      DEFAULT_IDM_TRANSFORMATION_SCRIPT = Script.builder()
+          .generateId()
+          .setName("Default IDM Transformation Script")
+          .setScript(idmScript)
+          .setLanguage(ScriptingLanguage.GROOVY)
+          .setContext(SOCIAL_IDP_PROFILE_TRANSFORMATION)
+          .setEvaluatorVersion(EvaluatorVersion.defaultVersion())
+          .build();
+
+      String amScript = "import static org.forgerock.json.JsonValue.field\n"
+          + "import static org.forgerock.json.JsonValue.json\n"
+          + "import static org.forgerock.json.JsonValue.object\n"
+          + "\n"
+          + "import org.forgerock.json.JsonValue\n"
+          + "\n"
+          + "JsonValue identity = json(object(\n"
+          + "        field(\"userName\", normalizedProfile.username),\n"
+          + "        field(\"iplanet-am-user-alias-list\", selectedIdp + '-' + normalizedProfile.id.asString())))\n"
+          + "\n"
+          + "if (normalizedProfile.email.isNotNull()) identity.put(\"mail\", normalizedProfile.email)\n"
+          + "if (normalizedProfile.phone.isNotNull()) identity.put(\"telephoneNumber\", normalizedProfile.phone)\n"
+          + "if (normalizedProfile.givenName.isNotNull()) identity.put(\"givenName\", normalizedProfile.givenName)\n"
+          + "if (normalizedProfile.familyName.isNotNull()) identity.put(\"sn\", normalizedProfile.familyName)\n"
+          + "if (normalizedProfile.photoUrl.isNotNull()) identity.put(\"labeledURI\", normalizedProfile.photoUrl)\n"
+          + "if (normalizedProfile.postalAddress.isNotNull()) identity.put(\"street\", normalizedProfile.postalAddress)\n"
+          + "if (normalizedProfile.addressLocality.isNotNull()) identity.put(\"l\", normalizedProfile.addressLocality)\n"
+          + "if (normalizedProfile.addressRegion.isNotNull()) identity.put(\"st\", normalizedProfile.addressRegion)\n"
+          + "if (normalizedProfile.postalCode.isNotNull()) identity.put(\"postalCode\", normalizedProfile.postalCode)\n"
+          + "if (normalizedProfile.country.isNotNull()) identity.put(\"co\", normalizedProfile.country)\n"
+          + "\n"
+          + "return identity";
+      DEFAULT_AM_TRANSFORMATION_SCRIPT = Script.builder()
+          .generateId()
+          .setName("Default AM Transformation Script")
+          .setScript(amScript)
+          .setLanguage(ScriptingLanguage.GROOVY)
+          .setContext(SOCIAL_IDP_PROFILE_TRANSFORMATION)
+          .setEvaluatorVersion(EvaluatorVersion.defaultVersion())
+          .build();
+    } catch (ScriptException e) {
+      // this should never happen
+      throw new RuntimeException("Encountered unexpected error", e);
+    }
+  }
 
   /**
    * Constructor.
@@ -130,6 +206,15 @@ public class PingOneIdentityProviderHandlerNode extends SocialProviderHandlerNod
         scriptEvaluatorFactory, sessionServiceProvider, idmIntegrationService);
     this.config = config;
     this.handler = handler;
+
+    // use the configured transformation script if configured, or one of the defaults otherwise
+    if (config.script() != null) {
+      transformationScript = config.script();
+    } else if (idmIntegrationService.isEnabled()) {
+      transformationScript = DEFAULT_IDM_TRANSFORMATION_SCRIPT;
+    } else {
+      transformationScript = DEFAULT_AM_TRANSFORMATION_SCRIPT;
+    }
   }
 
   @Override
@@ -138,24 +223,12 @@ public class PingOneIdentityProviderHandlerNode extends SocialProviderHandlerNod
     Action action = super.process(context);
     for (Callback callback : action.callbacks) {
       if (callback instanceof RedirectCallback) {
+        // send PAR request
         RedirectCallback redirectCallback = (RedirectCallback) callback;
         String redirectUrl = redirectCallback.getRedirectUrl();
-
-        URI uri = URI.create(redirectUrl);
-        String query = uri.getQuery();
-        String[] queryList = query.split("&");
-
-        for (String queryItem : queryList) {
-          String[] keyValue = queryItem.split("=");
-          if(keyValue[0].equals("code_challenge")) {
-            codeChallenge = keyValue[1];
-          }
-        }
-
-        // send PAR request
         String parRequestUri;
         try {
-          parRequestUri = sendParRequest(context).getOrThrow();
+          parRequestUri = sendParRequest(context, redirectUrl).getOrThrow();
         } catch (OAuthException e) {
           logger.debug("Failed to send PAR request", e);
           throw new NodeProcessException("Failed to send PAR request", e);
@@ -166,7 +239,6 @@ public class PingOneIdentityProviderHandlerNode extends SocialProviderHandlerNod
         }
 
         // update the RedirectCallback to include PAR URI
-
         String parRedirectUrl = redirectUrl + "&request_uri=" + parRequestUri;
         redirectCallback.setRedirectUrl(parRedirectUrl);
       }
@@ -180,6 +252,11 @@ public class PingOneIdentityProviderHandlerNode extends SocialProviderHandlerNod
     return new InputState[]{
         new InputState(NodeState.STATE_FILTER_WILDCARD)
     };
+  }
+
+  @Override
+  protected Script getTransformationScript() {
+    return transformationScript;
   }
 
   // TODO: This was copied from AbstractSocialAuthLoginNode.getServerURL.
@@ -201,17 +278,28 @@ public class PingOneIdentityProviderHandlerNode extends SocialProviderHandlerNod
     return "https://auth.pingone" + config.region().getDomainSuffix() + "/" + config.environmentId() + "/as";
   }
 
-  private Promise<String, OAuthException> sendParRequest(TreeContext context) {
+  private Promise<String, OAuthException> sendParRequest(TreeContext context, String redirectUrl) {
     // add the basic information in the PAR request
     Form form = new Form();
     form.add("client_id", config.clientId());
     form.add("response_type", "code");
     form.add("redirect_uri", config.redirectURI());
     form.add("scope", "openid profile email address phone");
-    form.add("code_challenge", codeChallenge);
-    form.add("code_challenge_method", "S256");
     if (!config.acrValues().isEmpty()) {
       form.add("acr_values", String.join(" ", config.acrValues()));
+    }
+
+    // add the PKCE parameters from the redirect URL
+    URI redirectUri = URI.create(redirectUrl);
+    String query = redirectUri.getQuery();
+    String[] queryList = query.split("&");
+
+    for (String queryItem : queryList) {
+      String[] keyValue = queryItem.split("=");
+      if (keyValue[0].equals("code_challenge")) {
+        form.add("code_challenge", keyValue[1]);
+        form.add("code_challenge_method", "S256");
+      }
     }
 
     // TODO: We might want to provide a way for folks to filter this down so that things like big images don't get passed.
@@ -288,7 +376,7 @@ public class PingOneIdentityProviderHandlerNode extends SocialProviderHandlerNod
     }
   }
 
-  public interface Config extends SocialProviderHandlerNode.Config {
+  public interface Config extends AbstractSocialProviderHandlerNode.Config {
 
     @Attribute(order = 10, validators = {RequiredValueValidator.class})
     default PingOneRegion region() {
@@ -313,6 +401,17 @@ public class PingOneIdentityProviderHandlerNode extends SocialProviderHandlerNod
     // TODO: Should this be a single value? Should we rename this to be generic, or to mention DV and Authentication policies?
     @Attribute(order = 60)
     List<String> acrValues();
+
+    /**
+     * The script configuration for transforming the normalized social profile to OBJECT_ATTRIBUTES data in
+     * the shared state. This is optional, and will default to a script that can be used with AM or IDM, depending on
+     * whether IDM is available.
+     *
+     * @return The script configuration
+     */
+    @Attribute(order = 100)
+    @ScriptContext(SOCIAL_IDP_PROFILE_TRANSFORMATION_NAME)
+    Script script();
   }
 
   private static class PingOneIdentityProviders implements SocialIdentityProviders {
@@ -340,6 +439,49 @@ public class PingOneIdentityProviderHandlerNode extends SocialProviderHandlerNod
   }
 
   private static class PingOneOAuthClientConfig implements OpenIDConnectClientConfig {
+
+    private static final Script OIDC_TRANSFORMATION_SCRIPT;
+
+    static {
+      // TODO: Things blow up when using the "Normalized Profile to Identity" script followed by the "Provision Dynamic Account" node.
+      // This is due to a bug in the node where null attribute values result in a NPE. Specifically this... field("cn", normalizedProfile.displayName),
+      // We can fix the node itself, but could also look into providing a better script that doesn't allow null values.
+      // The "Normalized Profile to Managed User" script is better about this, but doesn't include an account link mapping... which always results in "no account exists" and duplicate users.
+
+      // This maps all the standard OIDC claims defined in P1 except for the following: name, middle_name, nickname, zoneinfo, and updated_at.
+      // These don't have direct mappings to FR. Some of these aren't required, but have been seen in scripts like normalized-profile-to-managed-user.js.
+      String script = "import static org.forgerock.json.JsonValue.field\n"
+          + "import static org.forgerock.json.JsonValue.json\n"
+          + "import static org.forgerock.json.JsonValue.object\n"
+          + "\n"
+          + "return json(object(\n"
+          + "        field(\"id\", rawProfile.sub),\n"
+          + "        field(\"username\", rawProfile.preferred_username),\n"
+          + "        field(\"email\", rawProfile.email),\n"
+          + "        field(\"phone\", rawProfile.phone_number),\n"
+          + "        field(\"givenName\", rawProfile.given_name),\n"
+          + "        field(\"familyName\", rawProfile.family_name),\n"
+          + "        field(\"locale\", rawProfile.locale),\n"
+          + "        field(\"photoUrl\", rawProfile.picture),\n"
+          + "        field(\"postalAddress\", rawProfile.address.street_address),\n"
+          + "        field(\"addressLocality\", rawProfile.address.locality),\n"
+          + "        field(\"addressRegion\", rawProfile.address.region),\n"
+          + "        field(\"postalCode\", rawProfile.address.postal_code),\n"
+          + "        field(\"country\", rawProfile.address.country)))";
+      try {
+        OIDC_TRANSFORMATION_SCRIPT = Script.builder()
+            .generateId()
+            .setName("OIDC Profile Transformation")
+            .setScript(script)
+            .setLanguage(ScriptingLanguage.GROOVY)
+            .setContext(SOCIAL_IDP_PROFILE_TRANSFORMATION)
+            .setEvaluatorVersion(EvaluatorVersion.defaultVersion())
+            .build();
+      } catch (ScriptException e) {
+        // this should never happen
+        throw new RuntimeException("Encountered unexpected error", e);
+      }
+    }
 
     private final Config config;
     private final String baseUrl;
@@ -424,11 +566,6 @@ public class PingOneIdentityProviderHandlerNode extends SocialProviderHandlerNod
     public String issuer() {
       return baseUrl;
     }
-    
-    @Override
-    public PkceMethod pkceMethod() {
-      return PkceMethod.S256;
-    }
 
     @Override
     public String claims() {
@@ -472,45 +609,7 @@ public class PingOneIdentityProviderHandlerNode extends SocialProviderHandlerNod
 
     @Override
     public Script transform() {
-      // TODO: Things blow up when using the "Normalized Profile to Identity" script followed by the "Provision Dynamic Account" node.
-      // This is due to a bug in the node where null attribute values result in a NPE. Specifically this... field("cn", normalizedProfile.displayName),
-      // We can fix the node itself, but could also look into providing a better script that doesn't allow null values.
-      // The "Normalized Profile to Managed User" script is better about this, but doesn't include an account link mapping... which always results in "no account exists" and duplicate users.
-
-      // This maps all the standard OIDC claims defined in P1 except for the following: name, middle_name, nickname, zoneinfo, and updated_at.
-      // These don't have direct mappings to FR. Some of these aren't required, but have been seen in scripts like normalized-profile-to-managed-user.js.
-      String script = "import static org.forgerock.json.JsonValue.field\n"
-          + "import static org.forgerock.json.JsonValue.json\n"
-          + "import static org.forgerock.json.JsonValue.object\n"
-          + "\n"
-          + "return json(object(\n"
-          + "        field(\"id\", rawProfile.sub),\n"
-          + "        field(\"username\", rawProfile.preferred_username),\n"
-          + "        field(\"email\", rawProfile.email),\n"
-          + "        field(\"phone\", rawProfile.phone_number),\n"
-          + "        field(\"givenName\", rawProfile.given_name),\n"
-          + "        field(\"familyName\", rawProfile.family_name),\n"
-          + "        field(\"locale\", rawProfile.locale),\n"
-          + "        field(\"photoUrl\", rawProfile.picture),\n"
-          + "        field(\"postalAddress\", rawProfile.address.street_address),\n"
-          + "        field(\"addressLocality\", rawProfile.address.locality),\n"
-          + "        field(\"addressRegion\", rawProfile.address.region),\n"
-          + "        field(\"postalCode\", rawProfile.address.postal_code),\n"
-          + "        field(\"country\", rawProfile.address.country)))";
-      try {
-        return Script.builder()
-            .generateId()
-            .setName("OIDC Profile Transformation")
-            .setScript(script)
-            .setLanguage(ScriptingLanguage.GROOVY)
-            .setContext(SOCIAL_IDP_PROFILE_TRANSFORMATION)
-            .setEvaluatorVersion(EvaluatorVersion.defaultVersion())
-            .build();
-      } catch (ScriptException e) {
-        // this should never happen
-        logger.error("Encountered unexpected error", e);
-        return null;
-      }
+      return OIDC_TRANSFORMATION_SCRIPT;
     }
   }
 }
