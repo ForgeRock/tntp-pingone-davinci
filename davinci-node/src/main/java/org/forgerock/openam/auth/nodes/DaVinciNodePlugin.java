@@ -22,7 +22,7 @@ import org.forgerock.openam.auth.node.api.Node;
 
 public class DaVinciNodePlugin extends AbstractNodeAmPlugin {
 
-  private static final String CURRENT_VERSION = "0.0.0";
+  private static final String CURRENT_VERSION = "1.0.0";
 
   @Override
   protected Map<String, Iterable<? extends Class<? extends Node>>> getNodesByVersion() {
