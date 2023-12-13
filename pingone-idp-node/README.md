@@ -26,7 +26,7 @@ Copy the .jar file from the ../target directory into the ../web-container/webapp
 
 This connector requires a PingOne environment with DaVinci in order to work. If you don't have one already, follow the instructions [here](https://docs.pingidentity.com/r/en-us/pingone/p1_start_a_pingone_trial) and create a Customer Solution environment.
 
-The process of setting up a new environment will create a PingOne application named "Getting Started Application" that uses a DaVinci flow for authentication. This application is accessible in the PingOne console, and can easily be used with the node. The only configuration change that is necessary is setting the redirect URI to point to the ForgeRock instance (e.g., https://example.forgeblocks.com/am). If you intend on using the ForgeRock Tree state in your DaVinci flow, you can also select "Require Pushed Authorization Request".
+The process of setting up a new environment will create a PingOne application named "Getting Started Application" that uses a DaVinci flow for authentication. This application is accessible in the PingOne console, and can easily be used with the node. The only configuration change that is necessary is setting the redirect URI to point to the ForgeRock instance (e.g., https://example.forgeblocks.com/am) and adding the OIDC scopes in the "Resources" tab ("address", "email", "phone", and "profile"). If you intend on using the ForgeRock Tree state in your DaVinci flow, you can also select "Require Pushed Authorization Request".
 
 Once the PingOne application is set up, the required information can be copied from the PingOne console and pasted into the node configuration. Make sure to set the redirect URI to the value that was configured in the PingOne application.
 
