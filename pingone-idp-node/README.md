@@ -24,7 +24,7 @@ Copy the .jar file from the ../target directory into the ../web-container/webapp
 
 **Overall Architecture**
 
-![image](https://github.com/ForgeRock/tntp-pingone-davinci/assets/52761368/0e15de64-4b82-4209-8545-52787765b088)
+![image](https://github.com/ForgeRock/tntp-pingone-davinci/assets/52761368/1d01959c-5282-4da2-bc4d-61d876133829)
 
 
 
