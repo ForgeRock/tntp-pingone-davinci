@@ -22,6 +22,14 @@ Second, the node sends an OAuth PAR request to PingOne in order to pass Tree sta
 
 Copy the .jar file from the ../target directory into the ../web-container/webapps/openam/WEB-INF/lib directory where AM is deployed.  Restart the web container to pick up the new node.  The node will then appear in the authentication trees components palette.
 
+**Overall Architecture**
+
+![image](https://github.com/ForgeRock/tntp-pingone-davinci/assets/52761368/0e15de64-4b82-4209-8545-52787765b088)
+
+
+
+
+
 **Usage**
 
 This connector requires a PingOne environment with DaVinci in order to work. If you don't have one already, follow the instructions [here](https://docs.pingidentity.com/r/en-us/pingone/p1_start_a_pingone_trial) and create a Customer Solution environment.
