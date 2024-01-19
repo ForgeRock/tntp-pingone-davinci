@@ -55,7 +55,7 @@ import org.forgerock.openam.plugins.PluginException;
  */
 public class PingOneIdentityProviderHandlerNodePlugin extends AbstractNodeAmPlugin {
 
-	private static final String currentVersion = "0.0.0";
+	private static final String currentVersion = "0.0.1";
 	
     /** 
      * Specify the Map of list of node classes that the plugin is providing. These will then be installed and
