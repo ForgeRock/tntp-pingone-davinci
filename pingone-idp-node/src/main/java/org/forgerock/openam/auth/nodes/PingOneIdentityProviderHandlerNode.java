@@ -207,10 +207,8 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
     this.config = config;
     this.handler = handler;
 
-    // use the configured transformation script if configured, or one of the defaults otherwise
-    if (config.script() != null) {
-      transformationScript = config.script();
-    } else if (idmIntegrationService.isEnabled()) {
+
+    if (idmIntegrationService.isEnabled()) {
       transformationScript = DEFAULT_IDM_TRANSFORMATION_SCRIPT;
     } else {
       transformationScript = DEFAULT_AM_TRANSFORMATION_SCRIPT;
@@ -402,16 +400,6 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
     @Attribute(order = 60)
     List<String> acrValues();
 
-    /**
-     * The script configuration for transforming the normalized social profile to OBJECT_ATTRIBUTES data in
-     * the shared state. This is optional, and will default to a script that can be used with AM or IDM, depending on
-     * whether IDM is available.
-     *
-     * @return The script configuration
-     */
-    @Attribute(order = 100)
-    @ScriptContext(SOCIAL_IDP_PROFILE_TRANSFORMATION_NAME)
-    Script script();
   }
 
   private static class PingOneIdentityProviders implements SocialIdentityProviders {
