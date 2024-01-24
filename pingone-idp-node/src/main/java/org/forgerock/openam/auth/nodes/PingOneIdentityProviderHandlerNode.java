@@ -16,9 +16,10 @@
 
 package org.forgerock.openam.auth.nodes;
 
+import static java.util.Collections.singletonList;
 import static org.forgerock.http.protocol.Responses.noopExceptionAsyncFunction;
+import static org.forgerock.openam.auth.nodes.helpers.ScriptedNodeHelper.WILDCARD;
 import static org.forgerock.openam.social.idp.SocialIdPScriptContext.SOCIAL_IDP_PROFILE_TRANSFORMATION;
-import static org.forgerock.openam.social.idp.SocialIdPScriptContext.SOCIAL_IDP_PROFILE_TRANSFORMATION_NAME;
 import static org.forgerock.util.CloseSilentlyAsyncFunction.closeSilently;
 import static org.forgerock.util.Closeables.closeSilentlyAsync;
 
@@ -246,10 +247,9 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
 
   @Override
   public InputState[] getInputs() {
-    // include all inputs so that we can pass them to P1 as part of the PAR request
-    return new InputState[]{
-        new InputState(NodeState.STATE_FILTER_WILDCARD)
-    };
+    return config.inputs().stream()
+        .map(input -> new InputState(input, true))
+        .toArray(InputState[]::new);
   }
 
   @Override
@@ -299,9 +299,6 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
         form.add("code_challenge_method", "S256");
       }
     }
-
-    // TODO: We might want to provide a way for folks to filter this down so that things like big images don't get passed.
-    // This would likely be a config setting similar to the scripted decision node that we use in getInputs(...).
 
     // add information from the node state to the PAR request
     NodeState nodeState = context.getStateFor(this);
@@ -396,10 +393,13 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
       return getServerURL();
     }
 
-    // TODO: Should this be a single value? Should we rename this to be generic, or to mention DV and Authentication policies?
     @Attribute(order = 60)
     List<String> acrValues();
 
+    @Attribute(order = 70)
+    default List<String> inputs() {
+      return singletonList(WILDCARD);
+    }
   }
 
   private static class PingOneIdentityProviders implements SocialIdentityProviders {

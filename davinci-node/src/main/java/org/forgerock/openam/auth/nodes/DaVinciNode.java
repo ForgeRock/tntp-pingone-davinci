@@ -35,6 +35,7 @@ import org.forgerock.openam.auth.node.api.NodeState;
 import org.forgerock.openam.auth.node.api.OutputState;
 import org.forgerock.openam.auth.node.api.TreeContext;
 import org.forgerock.openam.auth.nodes.DaVinciClient.FlowResult;
+import org.forgerock.openam.sm.annotations.adapters.Password;
 
 /**
  * A node that executes "headless" DaVinci flows as described
@@ -61,6 +62,7 @@ public class DaVinciNode extends AbstractDecisionNode {
     String environmentId();
 
     @Attribute(order = 300, validators = {RequiredValueValidator.class})
+    @Password
     String apiKey();
 
     @Attribute(order = 400, validators = {RequiredValueValidator.class})
