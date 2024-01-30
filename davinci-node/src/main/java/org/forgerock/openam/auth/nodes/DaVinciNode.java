@@ -15,12 +15,15 @@
  */
 package org.forgerock.openam.auth.nodes;
 
+import static java.util.Collections.singletonList;
+import static org.forgerock.openam.auth.nodes.helpers.ScriptedNodeHelper.WILDCARD;
 import static org.forgerock.json.JsonValue.field;
 import static org.forgerock.json.JsonValue.json;
 import static org.forgerock.json.JsonValue.object;
 
 import com.google.inject.assistedinject.Assisted;
 import com.sun.identity.sm.RequiredValueValidator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import javax.inject.Inject;
@@ -35,6 +38,7 @@ import org.forgerock.openam.auth.node.api.NodeState;
 import org.forgerock.openam.auth.node.api.OutputState;
 import org.forgerock.openam.auth.node.api.TreeContext;
 import org.forgerock.openam.auth.nodes.DaVinciClient.FlowResult;
+
 
 /**
  * A node that executes "headless" DaVinci flows as described
@@ -65,6 +69,11 @@ public class DaVinciNode extends AbstractDecisionNode {
 
     @Attribute(order = 400, validators = {RequiredValueValidator.class})
     String flowPolicyId();
+
+    @Attribute(order = 400)
+    default List<String> inputs() {
+      return singletonList(WILDCARD);
+    }
   }
 
   @Inject
@@ -96,22 +105,22 @@ public class DaVinciNode extends AbstractDecisionNode {
         config.apiKey(),
         flowInput
     );
-    nodeState.putShared("flowOutput", result.getResponse());
+    nodeState.putShared("davinciResponse", result.getResponse());
     return goTo(result.isSuccess()).build();
   }
 
   @Override
   public InputState[] getInputs() {
-    // include all inputs so that we can pass them to P1
-    return new InputState[]{
-        new InputState(NodeState.STATE_FILTER_WILDCARD)
-    };
+    return config.inputs().stream()
+                 .map(input -> new InputState(input, true))
+                 .toArray(InputState[]::new);
   }
 
   @Override
   public OutputState[] getOutputs() {
     return new OutputState[]{
-        new OutputState("flowOutput", Map.of("true", true, "false", false))
+        new OutputState("davinciResponse", Map.of("true", true, "false", false))
     };
+
   }
 }

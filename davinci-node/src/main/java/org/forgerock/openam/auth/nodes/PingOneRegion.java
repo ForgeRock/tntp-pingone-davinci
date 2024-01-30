@@ -22,7 +22,7 @@ public enum PingOneRegion {
   NA(".com"),
   CA(".ca"),
   EU(".eu"),
-  AP(".ap");
+  ASIA(".asia");
 
   private final String domainSuffix;
 

@@ -64,6 +64,12 @@
         </dependency>
         <dependency>
             <groupId>org.forgerock.am</groupId>
+            <artifactId>auth-nodes</artifactId>
+            <version>${am.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.forgerock.am</groupId>
             <artifactId>openam-guice-core</artifactId>
             <scope>provided</scope>
         </dependency>

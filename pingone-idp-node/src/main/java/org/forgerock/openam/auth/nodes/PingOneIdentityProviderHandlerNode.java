@@ -315,7 +315,6 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
       }
       form.add(key, stringifiedValue);
     }
-    // TODO: consider additional user information and sending it to P1
 
     // create the PAR request and send it
     URI uri = URI.create(getPingOneBaseUrl(config) + "/par");
@@ -399,7 +398,6 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
     default List<String> inputs() {
       return singletonList(WILDCARD);
     }
-  }
 
   }
 
