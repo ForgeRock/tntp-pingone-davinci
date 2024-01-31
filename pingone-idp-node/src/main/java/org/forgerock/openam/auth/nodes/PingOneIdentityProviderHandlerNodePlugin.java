@@ -101,6 +101,7 @@ public class PingOneIdentityProviderHandlerNodePlugin extends AbstractNodeAmPlug
      */	
 	@Override
 	public void upgrade(String fromVersion) throws PluginException {
+		pluginTools.upgradeAuthNode(PingOneIdentityProviderHandlerNodePlugin.class);
 		super.upgrade(fromVersion);
 	}
 

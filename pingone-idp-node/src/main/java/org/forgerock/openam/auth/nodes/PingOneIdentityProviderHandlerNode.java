@@ -253,6 +253,26 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
                  .toArray(InputState[]::new);
   }
 
+  /**
+   * Return only those state values declared as inputs.
+   *
+   * @param state Either shared or transient state
+   * @return Filtered state
+   */
+  private JsonValue filterInputs(JsonValue state) {
+    if (config.inputs().contains(WILDCARD)) {
+      return state.copy();
+    } else {
+      JsonValue filtered = json(object());
+      config.inputs().forEach(input -> {
+        if (state.isDefined(input)) {
+          filtered.put(input, state.get(input));
+        }
+      });
+      return filtered;
+    }
+  }
+
   @Override
   protected Script getTransformationScript() {
     return transformationScript;
@@ -300,9 +320,10 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
     }
 
     // add information from the node state to the PAR request
-    NodeState nodeState = context.getStateFor(this);
-    for (String key : nodeState.keys()) {
-      JsonValue value = nodeState.get(key);
+    JsonValue filteredShared = filterInputs(context.sharedState);
+
+    for (String key : filteredShared.keys()) {
+      JsonValue value = filteredShared.get(key);
       String stringifiedValue;
       if (value.isBoolean()) {
         stringifiedValue = value.asBoolean().toString();
