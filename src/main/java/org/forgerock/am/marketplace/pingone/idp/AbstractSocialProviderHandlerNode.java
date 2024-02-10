@@ -320,9 +320,11 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
     }
     // Record the social identity subject in the profile, too
     String identity = selectedIdp + "-" + profile.getSubject();
+
     Optional<String> contextId = idmIntegrationService.getAttributeFromContext(context,
             config.usernameAttribute())
         .map(JsonValue::asString);
+
     Optional<JsonValue> user = getUser(context, identity);
 
     String resolvedId;
@@ -351,14 +353,30 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
 
     Optional<String> universalId = identityService.getUniversalId(resolvedId, realm.asPath(), IdType.USER);
 
-    return goTo(user.isPresent()
-        ? SocialAuthOutcome.ACCOUNT_EXISTS.name()
-        : SocialAuthOutcome.NO_ACCOUNT.name())
-        .withUniversalId(universalId)
-        .replaceSharedState(context.sharedState.copy())
-        .replaceTransientState(context.transientState.copy()
-            .putPermissive(ptr(SOCIAL_OAUTH_DATA).child(selectedIdp), dataStore.retrieveData()))
-        .build();
+    if(user.isPresent()) {
+      return goTo(SocialAuthOutcome.ACCOUNT_EXISTS.name())
+          .withUniversalId(universalId)
+          .replaceSharedState(context.sharedState.copy())
+          .replaceTransientState(context.transientState.copy()
+              .putPermissive(ptr(SOCIAL_OAUTH_DATA).child(selectedIdp), dataStore.retrieveData()))
+          .build();
+    } else {
+      if(universalId.isPresent()) {
+        return goTo(SocialAuthOutcome.ACCOUNT_EXISTS_NO_LINK.name())
+            .withUniversalId(universalId)
+            .replaceSharedState(context.sharedState.copy())
+            .replaceTransientState(context.transientState.copy()
+                .putPermissive(ptr(SOCIAL_OAUTH_DATA).child(selectedIdp), dataStore.retrieveData()))
+            .build();
+      } else {
+        return goTo(SocialAuthOutcome.NO_ACCOUNT.name())
+            .withUniversalId(universalId)
+            .replaceSharedState(context.sharedState.copy())
+            .replaceTransientState(context.transientState.copy()
+                .putPermissive(ptr(SOCIAL_OAUTH_DATA).child(selectedIdp), dataStore.retrieveData()))
+            .build();
+      }
+    }
   }
 
   private Optional<JsonValue> getUser(TreeContext context, String identity) throws NodeProcessException {
@@ -372,6 +390,7 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
       AMIdentity amIdentity = new DefaultAccountProvider().searchUser(
           identityStore,
           singletonMap(AM_USER_ALIAS_LIST_ATTRIBUTE_NAME, singleton(identity)));
+
       return Optional.ofNullable(amIdentity)
           .map(id -> json(object(field(config.usernameAttribute(), id.getName()))));
     }
@@ -493,9 +512,11 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
     return new OutputState[] {
         new OutputState(SOCIAL_OAUTH_DATA, json(object(
             field(SocialAuthOutcome.ACCOUNT_EXISTS.name(), true),
+            field(SocialAuthOutcome.ACCOUNT_EXISTS_NO_LINK.name(), false),
             field(SocialAuthOutcome.NO_ACCOUNT.name(), false))).asMap(Boolean.class)),
         new OutputState(USERNAME, json(object(
             field(SocialAuthOutcome.ACCOUNT_EXISTS.name(), true),
+            field(SocialAuthOutcome.ACCOUNT_EXISTS_NO_LINK.name(), false),
             field(SocialAuthOutcome.NO_ACCOUNT.name(), false))).asMap(Boolean.class))
     };
   }
@@ -525,9 +546,14 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
      */
     ACCOUNT_EXISTS,
     /**
+     * Subject match found but no account link exists
+     */
+    ACCOUNT_EXISTS_NO_LINK,
+    /**
      * Subject match not found.
      */
-    NO_ACCOUNT
+    NO_ACCOUNT,
+
   }
 
   /**
@@ -580,6 +606,8 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
       return ImmutableList.of(
           new Outcome(SocialAuthOutcome.ACCOUNT_EXISTS.name(),
               bundle.getString("accountExistsOutcome")),
+          new Outcome(SocialAuthOutcome.ACCOUNT_EXISTS_NO_LINK.name(),
+                      bundle.getString("accountExistsNoLinkOutcome")),
           new Outcome(SocialAuthOutcome.NO_ACCOUNT.name(),
               bundle.getString("noAccountOutcome")));
     }

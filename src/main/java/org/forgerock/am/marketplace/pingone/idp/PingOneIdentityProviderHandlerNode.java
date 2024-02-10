@@ -1,23 +1,29 @@
 /*
- * This code is to be used exclusively in connection with ForgeRock’s software or services. 
- * ForgeRock only offers ForgeRock software or services to legal entities who have entered 
- * into a binding license agreement with ForgeRock. 
+ * This code is to be used exclusively in connection with ForgeRock’s software or services.
+ * ForgeRock only offers ForgeRock software or services to legal entities who have entered
+ * into a binding license agreement with ForgeRock.
  */
 
 package org.forgerock.am.marketplace.pingone.idp;
 
+import static java.util.Collections.singletonList;
+import static org.forgerock.json.JsonValue.json;
+import static org.forgerock.json.JsonValue.object;
+import static org.forgerock.openam.auth.nodes.helpers.ScriptedNodeHelper.WILDCARD;
 import static org.forgerock.http.protocol.Responses.noopExceptionAsyncFunction;
 import static org.forgerock.openam.social.idp.SocialIdPScriptContext.SOCIAL_IDP_PROFILE_TRANSFORMATION;
 import static org.forgerock.openam.social.idp.SocialIdPScriptContext.SOCIAL_IDP_PROFILE_TRANSFORMATION_NAME;
 import static org.forgerock.util.CloseSilentlyAsyncFunction.closeSilently;
 import static org.forgerock.util.Closeables.closeSilentlyAsync;
 
+import java.util.Date;
 import java.net.URI;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.ResourceBundle;
 import java.util.Set;
 
 import javax.inject.Inject;
@@ -26,6 +32,7 @@ import javax.inject.Provider;
 import javax.security.auth.callback.Callback;
 
 import org.forgerock.am.identity.application.LegacyIdentityService;
+import org.forgerock.am.marketplace.pingone.PingOnePlugin;
 import org.forgerock.http.Handler;
 import org.forgerock.http.header.GenericHeader;
 import org.forgerock.http.protocol.Form;
@@ -39,6 +46,7 @@ import org.forgerock.openam.auth.node.api.InputState;
 import org.forgerock.openam.auth.node.api.Node;
 import org.forgerock.openam.auth.node.api.NodeProcessException;
 import org.forgerock.openam.auth.node.api.NodeState;
+import org.forgerock.openam.auth.node.api.StaticOutcomeProvider;
 import org.forgerock.openam.auth.node.api.TreeContext;
 import org.forgerock.openam.auth.nodes.oauth.SocialOAuth2Helper;
 import org.forgerock.openam.core.realms.Realm;
@@ -59,6 +67,7 @@ import org.forgerock.openam.social.idp.SocialIdentityProviders;
 import org.forgerock.services.context.RootContext;
 import org.forgerock.util.AsyncFunction;
 import org.forgerock.util.Function;
+import org.forgerock.util.i18n.PreferredLocales;
 import org.forgerock.util.promise.Promise;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,8 +80,6 @@ import com.sun.identity.authentication.spi.RedirectCallback;
 import com.sun.identity.shared.Constants;
 import com.sun.identity.sm.RequiredValueValidator;
 
-// TODO: Display a spinner on the redirect page, if possible. Peter to ask Tyler about this.
-// TODO: Update the README with information about the node.
 
 /**
  * This node is intended to be used to provide a simple OIDC identity provider connection between ForgeRock AM and
@@ -88,12 +95,16 @@ import com.sun.identity.sm.RequiredValueValidator;
  * PAR request that includes the node state. This provides a secure mechanism for passing context from ForgeRock to
  * PingOne that can be used in DaVinci flows.
  */
-@Node.Metadata(outcomeProvider = AbstractSocialProviderHandlerNode.SocialAuthOutcomeProvider.class,
+@Node.Metadata(outcomeProvider = PingOneIdentityProviderHandlerNode.OutcomeProvider.class,
     configClass = PingOneIdentityProviderHandlerNode.Config.class,
     tags = {"social", "federation", "platform"})
 public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHandlerNode {
 
   private static final Logger logger = LoggerFactory.getLogger(PingOneIdentityProviderHandlerNode.class);
+  private String loggerPrefix = "[PingOneNode]" + PingOnePlugin.logAppender;
+
+  private static final String BUNDLE = PingOneIdentityProviderHandlerNode.class.getName();
+  private static final String ERROR = "ERROR";
 
   private static final Script DEFAULT_IDM_TRANSFORMATION_SCRIPT;
   private static final Script DEFAULT_AM_TRANSFORMATION_SCRIPT;
@@ -200,9 +211,7 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
     this.handler = handler;
 
     // use the configured transformation script if configured, or one of the defaults otherwise
-    if (config.script() != null) {
-      transformationScript = config.script();
-    } else if (idmIntegrationService.isEnabled()) {
+    if (idmIntegrationService.isEnabled()) {
       transformationScript = DEFAULT_IDM_TRANSFORMATION_SCRIPT;
     } else {
       transformationScript = DEFAULT_AM_TRANSFORMATION_SCRIPT;
@@ -221,15 +230,22 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
         String parRequestUri;
         try {
           parRequestUri = sendParRequest(context, redirectUrl).getOrThrow();
-        } catch (OAuthException e) {
-          logger.debug("Failed to send PAR request", e);
-          throw new NodeProcessException("Failed to send PAR request", e);
-        } catch (InterruptedException e) {
+        } catch (OAuthException ex) {
+          logger.debug("Failed to send PAR request", ex);
+          String stackTrace = org.apache.commons.lang.exception.ExceptionUtils.getStackTrace(ex);
+          logger.error(loggerPrefix + "Exception occurred: " + stackTrace);
+          context.getStateFor(this).putTransient(loggerPrefix + "Exception", new Date() + ": " + ex.getMessage());
+          context.getStateFor(this).putTransient(loggerPrefix + "StackTrace", new Date() + ": " + stackTrace);
+          return Action.goTo(ERROR).withHeader("Error occurred").withErrorMessage(ex.getMessage()).build();
+        } catch (InterruptedException ex) {
           logger.debug("Interrupted while sending PAR request");
           Thread.currentThread().interrupt();
-          throw new NodeProcessException("Process interrupted", e);
+          String stackTrace = org.apache.commons.lang.exception.ExceptionUtils.getStackTrace(ex);
+          logger.error(loggerPrefix + "Exception occurred: " + stackTrace);
+          context.getStateFor(this).putTransient(loggerPrefix + "Exception", new Date() + ": " + ex.getMessage());
+          context.getStateFor(this).putTransient(loggerPrefix + "StackTrace", new Date() + ": " + stackTrace);
+          return Action.goTo(ERROR).withHeader("Error occurred").withErrorMessage(ex.getMessage()).build();
         }
-
         // update the RedirectCallback to include PAR URI
         String parRedirectUrl = redirectUrl + "&request_uri=" + parRequestUri;
         redirectCallback.setRedirectUrl(parRedirectUrl);
@@ -240,10 +256,30 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
 
   @Override
   public InputState[] getInputs() {
-    // include all inputs so that we can pass them to P1 as part of the PAR request
-    return new InputState[]{
-        new InputState(NodeState.STATE_FILTER_WILDCARD)
-    };
+    return config.inputs().stream()
+                 .map(input -> new InputState(input, true))
+                 .toArray(InputState[]::new);
+  }
+
+
+  /**
+   * Return only those state values declared as inputs.
+   *
+   * @param state Either shared or transient state
+   * @return Filtered state
+   */
+  private JsonValue filterInputs(JsonValue state) {
+    if (config.inputs().contains(WILDCARD)) {
+      return state.copy();
+    } else {
+      JsonValue filtered = json(object());
+      config.inputs().forEach(input -> {
+        if (state.isDefined(input)) {
+          filtered.put(input, state.get(input));
+        }
+      });
+      return filtered;
+    }
   }
 
   @Override
@@ -294,13 +330,13 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
       }
     }
 
-    // TODO: We might want to provide a way for folks to filter this down so that things like big images don't get passed.
-    // This would likely be a config setting similar to the scripted decision node that we use in getInputs(...).
-
     // add information from the node state to the PAR request
-    NodeState nodeState = context.getStateFor(this);
-    for (String key : nodeState.keys()) {
-      JsonValue value = nodeState.get(key);
+    JsonValue filteredShared = filterInputs(context.sharedState);
+    JsonValue filteredTransient = filterInputs(context.transientState);
+
+    // filter shared state
+    for (String key : filteredShared.keys()) {
+      JsonValue value = filteredShared.get(key);
       String stringifiedValue;
       if (value.isBoolean()) {
         stringifiedValue = value.asBoolean().toString();
@@ -313,12 +349,27 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
       }
       form.add(key, stringifiedValue);
     }
-    // TODO: consider additional user information and sending it to P1
+
+    // filter transient state
+    for (String key : filteredTransient.keys()) {
+      JsonValue value = filteredTransient.get(key);
+      String stringifiedValue;
+      if (value.isBoolean()) {
+        stringifiedValue = value.asBoolean().toString();
+      } else if (value.isNumber()) {
+        stringifiedValue = value.asNumber().toString();
+      } else if (value.isString()) {
+        stringifiedValue = value.asString();
+      } else {
+        stringifiedValue = value.toString();
+      }
+      form.add(key, stringifiedValue);
+    }
 
     // create the PAR request and send it
     URI uri = URI.create(getPingOneBaseUrl(config) + "/par");
     Request request = null;
-    
+
     try {
     	request = new Request().setUri(uri);
         form.toRequestEntity(request);
@@ -367,7 +418,7 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
     NA(".com"),
     CA(".ca"),
     EU(".eu"),
-    AP(".ap");
+    ASIA(".asia");
 
     private final String domainSuffix;
 
@@ -402,20 +453,14 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
       return getServerURL();
     }
 
-    // TODO: Should this be a single value? Should we rename this to be generic, or to mention DV and Authentication policies?
     @Attribute(order = 60)
     List<String> acrValues();
 
-    /**
-     * The script configuration for transforming the normalized social profile to OBJECT_ATTRIBUTES data in
-     * the shared state. This is optional, and will default to a script that can be used with AM or IDM, depending on
-     * whether IDM is available.
-     *
-     * @return The script configuration
-     */
-    @Attribute(order = 100)
-    @ScriptContext(SOCIAL_IDP_PROFILE_TRANSFORMATION_NAME)
-    Script script();
+    @Attribute(order = 70)
+    default List<String> inputs() {
+      return singletonList(WILDCARD);
+    }
+
   }
 
   private static class PingOneIdentityProviders implements SocialIdentityProviders {
@@ -614,6 +659,24 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
     @Override
     public Script transform() {
       return OIDC_TRANSFORMATION_SCRIPT;
+    }
+  }
+
+  public static class OutcomeProvider implements StaticOutcomeProvider
+  {
+    @Override
+    public List<Outcome> getOutcomes(PreferredLocales locales) {
+      ResourceBundle bundle = locales.getBundleInPreferredLocale(PingOneIdentityProviderHandlerNode.BUNDLE,
+                                                                 OutcomeProvider.class.getClassLoader());
+
+      return ImmutableList.of(
+              new Outcome(SocialAuthOutcome.ACCOUNT_EXISTS.name(),
+                          bundle.getString("accountExistsOutcome")),
+              new Outcome(SocialAuthOutcome.ACCOUNT_EXISTS_NO_LINK.name(),
+                          bundle.getString("accountExistsNoLinkOutcome")),
+              new Outcome(SocialAuthOutcome.NO_ACCOUNT.name(),
+                          bundle.getString("noAccountOutcome")),
+              new Outcome(ERROR, bundle.getString("errorOutcome")));
     }
   }
 }

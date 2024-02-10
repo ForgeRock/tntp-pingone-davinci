@@ -50,8 +50,8 @@ import org.slf4j.LoggerFactory;
  */
 public class PingOnePlugin extends AbstractNodeAmPlugin {
 
-	static private String currentVersion = "0.0.1";
-	static final String logAppender = "[Version: " + currentVersion + "][Marketplace] ";
+	static private String currentVersion = "0.0.6";
+	public static final String logAppender = "[Version: " + currentVersion + "][Marketplace] ";
 	private final Logger logger = LoggerFactory.getLogger(PingOnePlugin.class);
 	private String loggerPrefix = "[PingOnePlugin]" + PingOnePlugin.logAppender;
 	
