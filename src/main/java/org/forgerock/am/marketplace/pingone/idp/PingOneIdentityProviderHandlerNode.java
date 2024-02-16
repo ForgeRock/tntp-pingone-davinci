@@ -261,7 +261,6 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
                  .toArray(InputState[]::new);
   }
 
-
   /**
    * Return only those state values declared as inputs.
    *
@@ -475,6 +474,7 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
           new PingOneOAuthClientConfig(config)
       );
     }
+
 
     @Override
     public Map<String, OAuthClientConfig> getProviders(Realm realm) {
