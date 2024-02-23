@@ -128,10 +128,6 @@ The PingID Welcome flow requires a PingOne User ID to be supplied as input to th
 
 Now, the PingID Welcome flow will be executed during federation from Identity Cloud.
 
-### PingOne Authorize
-
-TODO
-
 # PingOne Node
 
 The **PingOne** node enables a Trusted Federation to be established between Identity Cloud and the PingOne SSO service which can be optionally configured to trigger a PingOne DaVinci flow. 
@@ -229,6 +225,19 @@ It assumes that you have already created a PingOne DaVinci flow for the purpose 
 5. Click Save.
 6. Click Deploy.
 
+### Configure the Input Schema 
+
+The PingOne DaVinci API node will send the Journey Node State to the PingOne DaVinci flow, this Node State must be configured as a Input Parameter for the PingOne DaVinci flow.
+
+1. Next, click on Input Schema on the DaVinci flow canvas.
+2. Click Add to add an input parameter.
+3. Enter **nodeState** as the parameter name.
+4. Select **Object** as the parameter data type.
+5. Click Save as shown below:
+
+![ScreenShot](./pingone_davinci_input_schema.png)
+
+
 ### Creating a PingOne DaVinci Application
 
 1. From within PingOne DaVinci, click the Applications tab.
@@ -265,10 +274,15 @@ Now, the next steps will cover how to configure the PingOne DaVinci API node in 
 
 The PingOne DaVinci API node has 3 outcomes, True, False and Error, configure the outcomes to the rest of the Journey as required.  Any data returned in the DaVinci success response will be available in the Identity Cloud Node State.  A scripted decision node can be used to access that data as shown below:
 
+### PingOne Authorize
+
+The PingOne DaVinci API node can be used to integrate with PingOne Authorize by simply sending the relevant data needed for the Authorization Decision from Identity Cloud to PingOne DaVinci and leveraging the PingOne Authorize Connector using the Make Decision Request capability to invoke an authorization decision.  The PingOne DaVinci flow below illustrates this use case: 
+
+![ScreenShot](./pingone_authorize.png)
 
 # PingOne DaVinci API Node
 
-The **PingOne DaVinci API** node allows a Identity Cloud journey to trigger a PingOne DaVinci flow via the API integration method where the DaVinci flow does not render any front-end UI pages.  
+The PingOne DaVinci API node allows an Identity Cloud journey to trigger a PingOne DaVinci flow via the API integration method where the DaVinci flow does not render any front-end UI pages.  
 
 ## Compatibility
 
@@ -296,7 +310,7 @@ This node does not have any required input fields.
 ## Outputs
 
 ---
-Any data configured to be returned in the PingOne DaVinci flow will be put into Node State.  
+Any data configured to be returned to the PingOne DaVinci flow will be put into Node State.  
 
 ## Outcomes
 
