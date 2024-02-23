@@ -1,7 +1,7 @@
 /*
- * This code is to be used exclusively in connection with ForgeRock’s software or services. 
- * ForgeRock only offers ForgeRock software or services to legal entities who have entered 
- * into a binding license agreement with ForgeRock. 
+ * This code is to be used exclusively in connection with ForgeRock’s software or services.
+ * ForgeRock only offers ForgeRock software or services to legal entities who have entered
+ * into a binding license agreement with ForgeRock.
  */
 
 package org.forgerock.am.marketplace.pingone;
@@ -50,64 +50,59 @@ import org.slf4j.LoggerFactory;
  */
 public class PingOnePlugin extends AbstractNodeAmPlugin {
 
-<<<<<<< HEAD:src/main/java/org/forgerock/am/marketplace/pingone/PingOnePlugin.java
 	static private String currentVersion = "0.0.12";
 	public static final String logAppender = "[Version: " + currentVersion + "][Marketplace] ";
 	private final Logger logger = LoggerFactory.getLogger(PingOnePlugin.class);
 	private String loggerPrefix = "[PingOnePlugin]" + PingOnePlugin.logAppender;
-=======
-	private static final String currentVersion = "0.0.1";
->>>>>>> master:pingone-idp-node/src/main/java/org/forgerock/openam/auth/nodes/PingOneIdentityProviderHandlerNodePlugin.java
-	
-    /** 
-     * Specify the Map of list of node classes that the plugin is providing. These will then be installed and
-     *  registered at the appropriate times in plugin lifecycle.
-     *
-     * @return The list of node classes.
-     */
+
+	/**
+	 * Specify the Map of list of node classes that the plugin is providing. These will then be installed and
+	 *  registered at the appropriate times in plugin lifecycle.
+	 *
+	 * @return The list of node classes.
+	 */
 	@Override
 	protected Map<String, Iterable<? extends Class<? extends Node>>> getNodesByVersion() {
-		return Collections.singletonMap(PingOnePlugin.currentVersion, 
-				Arrays.asList(
-						DaVinciNode.class,
-						PingOneIdentityProviderHandlerNode.class));
+		return Collections.singletonMap(PingOnePlugin.currentVersion,
+		                                Arrays.asList(
+				                                DaVinciNode.class,
+				                                PingOneIdentityProviderHandlerNode.class));
 	}
 
-    /** 
-     * Handle plugin installation. This method will only be called once, on first AM startup once the plugin
-     * is included in the classpath. The {@link #onStartup()} method will be called after this one.
-     * 
-     * No need to implement this unless your AuthNode has specific requirements on install.
-     */
+	/**
+	 * Handle plugin installation. This method will only be called once, on first AM startup once the plugin
+	 * is included in the classpath. The {@link #onStartup()} method will be called after this one.
+	 *
+	 * No need to implement this unless your AuthNode has specific requirements on install.
+	 */
 	@Override
 	public void onInstall() throws PluginException {
 		super.onInstall();
 	}
 
-    /** 
-     * Handle plugin startup. This method will be called every time AM starts, after {@link #onInstall()},
-     * {@link #onAmUpgrade(String, String)} and {@link #upgrade(String)} have been called (if relevant).
-     * 
-     * No need to implement this unless your AuthNode has specific requirements on startup.
-     *
-     * @param startupType The type of startup that is taking place.
-     */
+	/**
+	 * Handle plugin startup. This method will be called every time AM starts, after {@link #onInstall()},
+	 * {@link #onAmUpgrade(String, String)} and {@link #upgrade(String)} have been called (if relevant).
+	 *
+	 * No need to implement this unless your AuthNode has specific requirements on startup.
+	 *
+	 * @param startupType The type of startup that is taking place.
+	 */
 	@Override
 	public void onStartup() throws PluginException {
 		super.onStartup();
 	}
 
-    /** 
-     * This method will be called when the version returned by {@link #getPluginVersion()} is higher than the
-     * version already installed. This method will be called before the {@link #onStartup()} method.
-     * 
-     * No need to implement this untils there are multiple versions of your auth node.
-     *
-     * @param fromVersion The old version of the plugin that has been installed.
-     */	
+	/**
+	 * This method will be called when the version returned by {@link #getPluginVersion()} is higher than the
+	 * version already installed. This method will be called before the {@link #onStartup()} method.
+	 *
+	 * No need to implement this untils there are multiple versions of your auth node.
+	 *
+	 * @param fromVersion The old version of the plugin that has been installed.
+	 */
 	@Override
 	public void upgrade(String fromVersion) throws PluginException {
-<<<<<<< HEAD:src/main/java/org/forgerock/am/marketplace/pingone/PingOnePlugin.java
 		logger.error(loggerPrefix + "fromVersion = " + fromVersion);
 		logger.error(loggerPrefix + "currentVersion = " + currentVersion);
 		try {
@@ -116,18 +111,15 @@ public class PingOnePlugin extends AbstractNodeAmPlugin {
 		} catch (Exception e) {
 			throw new PluginException(e.getMessage());
 		}
-=======
-		pluginTools.upgradeAuthNode(PingOneIdentityProviderHandlerNodePlugin.class);
->>>>>>> master:pingone-idp-node/src/main/java/org/forgerock/openam/auth/nodes/PingOneIdentityProviderHandlerNodePlugin.java
 		super.upgrade(fromVersion);
 	}
 
-    /** 
-     * The plugin version. This must be in semver (semantic version) format.
-     *
-     * @return The version of the plugin.
-     * @see <a href="https://www.osgi.org/wp-content/uploads/SemanticVersioning.pdf">Semantic Versioning</a>
-     */
+	/**
+	 * The plugin version. This must be in semver (semantic version) format.
+	 *
+	 * @return The version of the plugin.
+	 * @see <a href="https://www.osgi.org/wp-content/uploads/SemanticVersioning.pdf">Semantic Versioning</a>
+	 */
 	@Override
 	public String getPluginVersion() {
 		return PingOnePlugin.currentVersion;

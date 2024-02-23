@@ -7,14 +7,10 @@
 package org.forgerock.am.marketplace.pingone.idp;
 
 import static java.util.Collections.singletonList;
-<<<<<<< HEAD:src/main/java/org/forgerock/am/marketplace/pingone/idp/PingOneIdentityProviderHandlerNode.java
 import static org.forgerock.json.JsonValue.json;
 import static org.forgerock.json.JsonValue.object;
 import static org.forgerock.openam.auth.nodes.helpers.ScriptedNodeHelper.WILDCARD;
-=======
->>>>>>> master:pingone-idp-node/src/main/java/org/forgerock/openam/auth/nodes/PingOneIdentityProviderHandlerNode.java
 import static org.forgerock.http.protocol.Responses.noopExceptionAsyncFunction;
-import static org.forgerock.openam.auth.nodes.helpers.ScriptedNodeHelper.WILDCARD;
 import static org.forgerock.openam.social.idp.SocialIdPScriptContext.SOCIAL_IDP_PROFILE_TRANSFORMATION;
 import static org.forgerock.util.CloseSilentlyAsyncFunction.closeSilently;
 import static org.forgerock.util.Closeables.closeSilentlyAsync;
@@ -96,8 +92,8 @@ import com.sun.identity.shared.Constants;
  * PingOne that can be used in DaVinci flows.
  */
 @Node.Metadata(outcomeProvider = PingOneIdentityProviderHandlerNode.OutcomeProvider.class,
-    configClass = PingOneIdentityProviderHandlerNode.Config.class,
-    tags = {"social", "federation", "platform"})
+               configClass = PingOneIdentityProviderHandlerNode.Config.class,
+               tags = {"social", "federation", "platform"})
 public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHandlerNode {
 
   private static final Logger logger = LoggerFactory.getLogger(PingOneIdentityProviderHandlerNode.class);
@@ -119,66 +115,66 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
       // Initialize the default scripts for IDM and AM. These are exactly the same except that they use the appropriate
       // attributes defined here: https://backstage.forgerock.com/docs/idcloud/latest/identities/user-identity-properties-attributes-reference.html
       String idmScript = "import static org.forgerock.json.JsonValue.field\n"
-          + "import static org.forgerock.json.JsonValue.json\n"
-          + "import static org.forgerock.json.JsonValue.object\n"
-          + "\n"
-          + "import org.forgerock.json.JsonValue\n"
-          + "\n"
-          + "JsonValue managedUser = json(object(\n"
-          + "        field(\"userName\", normalizedProfile.username),\n"
-          + "        field(\"aliasList\", selectedIdp + '-' + normalizedProfile.id.asString())))\n"
-          + "\n"
-          + "if (normalizedProfile.email.isNotNull()) managedUser.put(\"mail\", normalizedProfile.email)\n"
-          + "if (normalizedProfile.phone.isNotNull()) managedUser.put(\"telephoneNumber\", normalizedProfile.phone)\n"
-          + "if (normalizedProfile.givenName.isNotNull()) managedUser.put(\"givenName\", normalizedProfile.givenName)\n"
-          + "if (normalizedProfile.familyName.isNotNull()) managedUser.put(\"sn\", normalizedProfile.familyName)\n"
-          + "if (normalizedProfile.photoUrl.isNotNull()) managedUser.put(\"profileImage\", normalizedProfile.photoUrl)\n"
-          + "if (normalizedProfile.postalAddress.isNotNull()) managedUser.put(\"postalAddress\", normalizedProfile.postalAddress)\n"
-          + "if (normalizedProfile.addressLocality.isNotNull()) managedUser.put(\"city\", normalizedProfile.addressLocality)\n"
-          + "if (normalizedProfile.addressRegion.isNotNull()) managedUser.put(\"stateProvince\", normalizedProfile.addressRegion)\n"
-          + "if (normalizedProfile.postalCode.isNotNull()) managedUser.put(\"postalCode\", normalizedProfile.postalCode)\n"
-          + "if (normalizedProfile.country.isNotNull()) managedUser.put(\"country\", normalizedProfile.country)\n"
-          + "\n"
-          + "return managedUser";
+                         + "import static org.forgerock.json.JsonValue.json\n"
+                         + "import static org.forgerock.json.JsonValue.object\n"
+                         + "\n"
+                         + "import org.forgerock.json.JsonValue\n"
+                         + "\n"
+                         + "JsonValue managedUser = json(object(\n"
+                         + "        field(\"userName\", normalizedProfile.username),\n"
+                         + "        field(\"aliasList\", selectedIdp + '-' + normalizedProfile.id.asString())))\n"
+                         + "\n"
+                         + "if (normalizedProfile.email.isNotNull()) managedUser.put(\"mail\", normalizedProfile.email)\n"
+                         + "if (normalizedProfile.phone.isNotNull()) managedUser.put(\"telephoneNumber\", normalizedProfile.phone)\n"
+                         + "if (normalizedProfile.givenName.isNotNull()) managedUser.put(\"givenName\", normalizedProfile.givenName)\n"
+                         + "if (normalizedProfile.familyName.isNotNull()) managedUser.put(\"sn\", normalizedProfile.familyName)\n"
+                         + "if (normalizedProfile.photoUrl.isNotNull()) managedUser.put(\"profileImage\", normalizedProfile.photoUrl)\n"
+                         + "if (normalizedProfile.postalAddress.isNotNull()) managedUser.put(\"postalAddress\", normalizedProfile.postalAddress)\n"
+                         + "if (normalizedProfile.addressLocality.isNotNull()) managedUser.put(\"city\", normalizedProfile.addressLocality)\n"
+                         + "if (normalizedProfile.addressRegion.isNotNull()) managedUser.put(\"stateProvince\", normalizedProfile.addressRegion)\n"
+                         + "if (normalizedProfile.postalCode.isNotNull()) managedUser.put(\"postalCode\", normalizedProfile.postalCode)\n"
+                         + "if (normalizedProfile.country.isNotNull()) managedUser.put(\"country\", normalizedProfile.country)\n"
+                         + "\n"
+                         + "return managedUser";
       DEFAULT_IDM_TRANSFORMATION_SCRIPT = Script.builder()
-          .generateId()
-          .setName("Default IDM Transformation Script")
-          .setScript(idmScript)
-          .setLanguage(ScriptingLanguage.GROOVY)
-          .setContext(SOCIAL_IDP_PROFILE_TRANSFORMATION)
-          .setEvaluatorVersion(EvaluatorVersion.defaultVersion())
-          .build();
+                                                .generateId()
+                                                .setName("Default IDM Transformation Script")
+                                                .setScript(idmScript)
+                                                .setLanguage(ScriptingLanguage.GROOVY)
+                                                .setContext(SOCIAL_IDP_PROFILE_TRANSFORMATION)
+                                                .setEvaluatorVersion(EvaluatorVersion.defaultVersion())
+                                                .build();
 
       String amScript = "import static org.forgerock.json.JsonValue.field\n"
-          + "import static org.forgerock.json.JsonValue.json\n"
-          + "import static org.forgerock.json.JsonValue.object\n"
-          + "\n"
-          + "import org.forgerock.json.JsonValue\n"
-          + "\n"
-          + "JsonValue identity = json(object(\n"
-          + "        field(\"userName\", normalizedProfile.username),\n"
-          + "        field(\"iplanet-am-user-alias-list\", selectedIdp + '-' + normalizedProfile.id.asString())))\n"
-          + "\n"
-          + "if (normalizedProfile.email.isNotNull()) identity.put(\"mail\", normalizedProfile.email)\n"
-          + "if (normalizedProfile.phone.isNotNull()) identity.put(\"telephoneNumber\", normalizedProfile.phone)\n"
-          + "if (normalizedProfile.givenName.isNotNull()) identity.put(\"givenName\", normalizedProfile.givenName)\n"
-          + "if (normalizedProfile.familyName.isNotNull()) identity.put(\"sn\", normalizedProfile.familyName)\n"
-          + "if (normalizedProfile.photoUrl.isNotNull()) identity.put(\"labeledURI\", normalizedProfile.photoUrl)\n"
-          + "if (normalizedProfile.postalAddress.isNotNull()) identity.put(\"street\", normalizedProfile.postalAddress)\n"
-          + "if (normalizedProfile.addressLocality.isNotNull()) identity.put(\"l\", normalizedProfile.addressLocality)\n"
-          + "if (normalizedProfile.addressRegion.isNotNull()) identity.put(\"st\", normalizedProfile.addressRegion)\n"
-          + "if (normalizedProfile.postalCode.isNotNull()) identity.put(\"postalCode\", normalizedProfile.postalCode)\n"
-          + "if (normalizedProfile.country.isNotNull()) identity.put(\"co\", normalizedProfile.country)\n"
-          + "\n"
-          + "return identity";
+                        + "import static org.forgerock.json.JsonValue.json\n"
+                        + "import static org.forgerock.json.JsonValue.object\n"
+                        + "\n"
+                        + "import org.forgerock.json.JsonValue\n"
+                        + "\n"
+                        + "JsonValue identity = json(object(\n"
+                        + "        field(\"userName\", normalizedProfile.username),\n"
+                        + "        field(\"iplanet-am-user-alias-list\", selectedIdp + '-' + normalizedProfile.id.asString())))\n"
+                        + "\n"
+                        + "if (normalizedProfile.email.isNotNull()) identity.put(\"mail\", normalizedProfile.email)\n"
+                        + "if (normalizedProfile.phone.isNotNull()) identity.put(\"telephoneNumber\", normalizedProfile.phone)\n"
+                        + "if (normalizedProfile.givenName.isNotNull()) identity.put(\"givenName\", normalizedProfile.givenName)\n"
+                        + "if (normalizedProfile.familyName.isNotNull()) identity.put(\"sn\", normalizedProfile.familyName)\n"
+                        + "if (normalizedProfile.photoUrl.isNotNull()) identity.put(\"labeledURI\", normalizedProfile.photoUrl)\n"
+                        + "if (normalizedProfile.postalAddress.isNotNull()) identity.put(\"street\", normalizedProfile.postalAddress)\n"
+                        + "if (normalizedProfile.addressLocality.isNotNull()) identity.put(\"l\", normalizedProfile.addressLocality)\n"
+                        + "if (normalizedProfile.addressRegion.isNotNull()) identity.put(\"st\", normalizedProfile.addressRegion)\n"
+                        + "if (normalizedProfile.postalCode.isNotNull()) identity.put(\"postalCode\", normalizedProfile.postalCode)\n"
+                        + "if (normalizedProfile.country.isNotNull()) identity.put(\"co\", normalizedProfile.country)\n"
+                        + "\n"
+                        + "return identity";
       DEFAULT_AM_TRANSFORMATION_SCRIPT = Script.builder()
-          .generateId()
-          .setName("Default AM Transformation Script")
-          .setScript(amScript)
-          .setLanguage(ScriptingLanguage.GROOVY)
-          .setContext(SOCIAL_IDP_PROFILE_TRANSFORMATION)
-          .setEvaluatorVersion(EvaluatorVersion.defaultVersion())
-          .build();
+                                               .generateId()
+                                               .setName("Default AM Transformation Script")
+                                               .setScript(amScript)
+                                               .setLanguage(ScriptingLanguage.GROOVY)
+                                               .setContext(SOCIAL_IDP_PROFILE_TRANSFORMATION)
+                                               .setEvaluatorVersion(EvaluatorVersion.defaultVersion())
+                                               .build();
     } catch (ScriptException e) {
       // this should never happen
       throw new RuntimeException("Encountered unexpected error", e);
@@ -199,25 +195,21 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
    */
   @Inject
   public PingOneIdentityProviderHandlerNode(@Assisted Config config,
-      SocialOAuth2Helper authModuleHelper,
-      LegacyIdentityService identityService,
-      @Assisted Realm realm,
-      ScriptEvaluatorFactory scriptEvaluatorFactory,
-      Provider<SessionService> sessionServiceProvider,
-      IdmIntegrationService idmIntegrationService,
-      @Named("CloseableHttpClientHandler") Handler handler) {
+                                            SocialOAuth2Helper authModuleHelper,
+                                            LegacyIdentityService identityService,
+                                            @Assisted Realm realm,
+                                            ScriptEvaluatorFactory scriptEvaluatorFactory,
+                                            Provider<SessionService> sessionServiceProvider,
+                                            IdmIntegrationService idmIntegrationService,
+                                            @Named("CloseableHttpClientHandler") Handler handler) {
     super(config, authModuleHelper, new PingOneIdentityProviders(config, TNTPPingOneConfigChoiceValues.getTNTPPingOneConfig(config.tntpPingOneConfigName())), identityService, realm,
-        scriptEvaluatorFactory, sessionServiceProvider, idmIntegrationService);
+          scriptEvaluatorFactory, sessionServiceProvider, idmIntegrationService);
 
     this.config = config;
     this.handler = handler;
     this.tntpPingOneConfig = TNTPPingOneConfigChoiceValues.getTNTPPingOneConfig(config.tntpPingOneConfigName());
 
-<<<<<<< HEAD:src/main/java/org/forgerock/am/marketplace/pingone/idp/PingOneIdentityProviderHandlerNode.java
     // use the configured transformation script if configured, or one of the defaults otherwise
-=======
-
->>>>>>> master:pingone-idp-node/src/main/java/org/forgerock/openam/auth/nodes/PingOneIdentityProviderHandlerNode.java
     if (idmIntegrationService.isEnabled()) {
       transformationScript = DEFAULT_IDM_TRANSFORMATION_SCRIPT;
     } else {
@@ -227,7 +219,7 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
 
   @Override
   public Action process(TreeContext context) throws NodeProcessException {
-	context.getStateFor(this).putShared(IdmIntegrationService.SELECTED_IDP, PingOneIdentityProviders.PING_ONE_IDP_NAME);
+    context.getStateFor(this).putShared(IdmIntegrationService.SELECTED_IDP, PingOneIdentityProviders.PING_ONE_IDP_NAME);
     Action action = super.process(context);
     for (Callback callback : action.callbacks) {
       if (callback instanceof RedirectCallback) {
@@ -293,6 +285,8 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
     return transformationScript;
   }
 
+  // TODO: This was copied from AbstractSocialAuthLoginNode.getServerURL.
+  // Use it from there when moved into openam-auth-trees/auth-nodes.
   private static String getServerURL() {
     final String protocol = SystemProperties.get(Constants.AM_SERVER_PROTOCOL);
     final String host = SystemProperties.get(Constants.AM_SERVER_HOST);
@@ -336,7 +330,6 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
 
     // add information from the node state to the PAR request
     JsonValue filteredShared = filterInputs(context.sharedState);
-<<<<<<< HEAD:src/main/java/org/forgerock/am/marketplace/pingone/idp/PingOneIdentityProviderHandlerNode.java
     JsonValue filteredTransient = filterInputs(context.transientState);
 
     // filter shared state
@@ -358,11 +351,6 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
     // filter transient state
     for (String key : filteredTransient.keys()) {
       JsonValue value = filteredTransient.get(key);
-=======
-
-    for (String key : filteredShared.keys()) {
-      JsonValue value = filteredShared.get(key);
->>>>>>> master:pingone-idp-node/src/main/java/org/forgerock/openam/auth/nodes/PingOneIdentityProviderHandlerNode.java
       String stringifiedValue;
       if (value.isBoolean()) {
         stringifiedValue = value.asBoolean().toString();
@@ -381,23 +369,23 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
     Request request = null;
 
     try {
-    	request = new Request().setUri(uri);
-        form.toRequestEntity(request);
-        request.addHeaders(new GenericHeader(
-            "Authorization",
-            "BASIC " + Base64.getEncoder().encodeToString((tntpPingOneConfig.p1APIKey() + ":" + tntpPingOneConfig.p1APISecret()).getBytes()))
-        );
-        return handler.handle(new RootContext(), request)
-            .thenAlways(closeSilentlyAsync(request))
-            .thenAsync(closeSilently(handleParResponse()), noopExceptionAsyncFunction())
-            .then(mapToParRequestUri());
+      request = new Request().setUri(uri);
+      form.toRequestEntity(request);
+      request.addHeaders(new GenericHeader(
+                             "Authorization",
+                             "BASIC " + Base64.getEncoder().encodeToString((tntpPingOneConfig.p1APIKey() + ":" + tntpPingOneConfig.p1APISecret()).getBytes()))
+                        );
+      return handler.handle(new RootContext(), request)
+                    .thenAlways(closeSilentlyAsync(request))
+                    .thenAsync(closeSilently(handleParResponse()), noopExceptionAsyncFunction())
+                    .then(mapToParRequestUri());
     }
     catch (Exception ex) {
-    	//never gets here
+      //never gets here
     }
     finally {
-    	if (request!=null)
-    		request.close();
+      if (request!=null)
+        request.close();
     }
     return null;
   }
@@ -424,26 +412,6 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
     };
   }
 
-<<<<<<< HEAD:src/main/java/org/forgerock/am/marketplace/pingone/idp/PingOneIdentityProviderHandlerNode.java
-=======
-  public enum PingOneRegion {
-    NA(".com"),
-    CA(".ca"),
-    EU(".eu"),
-    ASIA(".asia");
-
-    private final String domainSuffix;
-
-    PingOneRegion(String domainSuffix) {
-      this.domainSuffix = domainSuffix;
-    }
-
-    public String getDomainSuffix() {
-      return domainSuffix;
-    }
-  }
-
->>>>>>> master:pingone-idp-node/src/main/java/org/forgerock/openam/auth/nodes/PingOneIdentityProviderHandlerNode.java
   public interface Config extends AbstractSocialProviderHandlerNode.Config {
     /**
      * The Configured service
@@ -453,7 +421,6 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
       return TNTPPingOneConfigChoiceValues.createTNTPPingOneConfigName("Global Default");
     };
 
-<<<<<<< HEAD:src/main/java/org/forgerock/am/marketplace/pingone/idp/PingOneIdentityProviderHandlerNode.java
     @Attribute(order = 200)
     List<String> acrValues();
 
@@ -461,36 +428,6 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
     default List<String> inputs() {
       return singletonList(WILDCARD);
     }
-=======
-    @Attribute(order = 10, validators = {RequiredValueValidator.class})
-    default PingOneRegion region() {
-      return PingOneRegion.NA;
-    }
-
-    @Attribute(order = 20, validators = {RequiredValueValidator.class})
-    String environmentId();
-
-    @Attribute(order = 30, validators = {RequiredValueValidator.class})
-    String clientId();
-
-    @Attribute(order = 40, validators = {RequiredValueValidator.class})
-    @Password
-    String clientSecret();
-
-    @Attribute(order = 50, validators = {RequiredValueValidator.class, URLValidator.class})
-    default String redirectURI() {
-      return getServerURL();
-    }
-
-    @Attribute(order = 60)
-    List<String> acrValues();
-
-    @Attribute(order = 70)
-    default List<String> inputs() {
-      return singletonList(WILDCARD);
-    }
-
->>>>>>> master:pingone-idp-node/src/main/java/org/forgerock/openam/auth/nodes/PingOneIdentityProviderHandlerNode.java
   }
 
   private static class PingOneIdentityProviders implements SocialIdentityProviders {
@@ -503,7 +440,7 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
       this.providers = Collections.singletonMap(
           PING_ONE_IDP_NAME,
           new PingOneOAuthClientConfig(config, tntpPingOneConfig)
-      );
+                                               );
     }
 
     @Override
@@ -522,40 +459,35 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
     private static final Script OIDC_TRANSFORMATION_SCRIPT;
 
     static {
-      // TODO: Things blow up when using the "Normalized Profile to Identity" script followed by the "Provision Dynamic Account" node.
-      // This is due to a bug in the node where null attribute values result in a NPE. Specifically this... field("cn", normalizedProfile.displayName),
-      // We can fix the node itself, but could also look into providing a better script that doesn't allow null values.
-      // The "Normalized Profile to Managed User" script is better about this, but doesn't include an account link mapping... which always results in "no account exists" and duplicate users.
-
       // This maps all the standard OIDC claims defined in P1 except for the following: name, middle_name, nickname, zoneinfo, and updated_at.
       // These don't have direct mappings to FR. Some of these aren't required, but have been seen in scripts like normalized-profile-to-managed-user.js.
       String script = "import static org.forgerock.json.JsonValue.field\n"
-          + "import static org.forgerock.json.JsonValue.json\n"
-          + "import static org.forgerock.json.JsonValue.object\n"
-          + "\n"
-          + "return json(object(\n"
-          + "        field(\"id\", rawProfile.sub),\n"
-          + "        field(\"username\", rawProfile.preferred_username),\n"
-          + "        field(\"email\", rawProfile.email),\n"
-          + "        field(\"phone\", rawProfile.phone_number),\n"
-          + "        field(\"givenName\", rawProfile.given_name),\n"
-          + "        field(\"familyName\", rawProfile.family_name),\n"
-          + "        field(\"locale\", rawProfile.locale),\n"
-          + "        field(\"photoUrl\", rawProfile.picture),\n"
-          + "        field(\"postalAddress\", rawProfile.address.street_address),\n"
-          + "        field(\"addressLocality\", rawProfile.address.locality),\n"
-          + "        field(\"addressRegion\", rawProfile.address.region),\n"
-          + "        field(\"postalCode\", rawProfile.address.postal_code),\n"
-          + "        field(\"country\", rawProfile.address.country)))";
+                      + "import static org.forgerock.json.JsonValue.json\n"
+                      + "import static org.forgerock.json.JsonValue.object\n"
+                      + "\n"
+                      + "return json(object(\n"
+                      + "        field(\"id\", rawProfile.sub),\n"
+                      + "        field(\"username\", rawProfile.preferred_username),\n"
+                      + "        field(\"email\", rawProfile.email),\n"
+                      + "        field(\"phone\", rawProfile.phone_number),\n"
+                      + "        field(\"givenName\", rawProfile.given_name),\n"
+                      + "        field(\"familyName\", rawProfile.family_name),\n"
+                      + "        field(\"locale\", rawProfile.locale),\n"
+                      + "        field(\"photoUrl\", rawProfile.picture),\n"
+                      + "        field(\"postalAddress\", rawProfile.address.street_address),\n"
+                      + "        field(\"addressLocality\", rawProfile.address.locality),\n"
+                      + "        field(\"addressRegion\", rawProfile.address.region),\n"
+                      + "        field(\"postalCode\", rawProfile.address.postal_code),\n"
+                      + "        field(\"country\", rawProfile.address.country)))";
       try {
         OIDC_TRANSFORMATION_SCRIPT = Script.builder()
-            .generateId()
-            .setName("OIDC Profile Transformation")
-            .setScript(script)
-            .setLanguage(ScriptingLanguage.GROOVY)
-            .setContext(SOCIAL_IDP_PROFILE_TRANSFORMATION)
-            .setEvaluatorVersion(EvaluatorVersion.defaultVersion())
-            .build();
+                                           .generateId()
+                                           .setName("OIDC Profile Transformation")
+                                           .setScript(script)
+                                           .setLanguage(ScriptingLanguage.GROOVY)
+                                           .setContext(SOCIAL_IDP_PROFILE_TRANSFORMATION)
+                                           .setEvaluatorVersion(EvaluatorVersion.defaultVersion())
+                                           .build();
       } catch (ScriptException e) {
         // this should never happen
         throw new RuntimeException("Encountered unexpected error", e);
@@ -696,13 +628,13 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
                                                                  OutcomeProvider.class.getClassLoader());
 
       return ImmutableList.of(
-              new Outcome(SocialAuthOutcome.ACCOUNT_EXISTS.name(),
-                          bundle.getString("accountExistsOutcome")),
-              new Outcome(SocialAuthOutcome.ACCOUNT_EXISTS_NO_LINK.name(),
-                          bundle.getString("accountExistsNoLinkOutcome")),
-              new Outcome(SocialAuthOutcome.NO_ACCOUNT.name(),
-                          bundle.getString("noAccountOutcome")),
-              new Outcome(ERROR, bundle.getString("errorOutcome")));
+          new Outcome(SocialAuthOutcome.ACCOUNT_EXISTS.name(),
+                      bundle.getString("accountExistsOutcome")),
+          new Outcome(SocialAuthOutcome.ACCOUNT_EXISTS_NO_LINK.name(),
+                      bundle.getString("accountExistsNoLinkOutcome")),
+          new Outcome(SocialAuthOutcome.NO_ACCOUNT.name(),
+                      bundle.getString("noAccountOutcome")),
+          new Outcome(ERROR, bundle.getString("errorOutcome")));
     }
   }
 }

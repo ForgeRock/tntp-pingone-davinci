@@ -13,18 +13,5 @@
 #
 # Copyright 2017-2018 ForgeRock AS.
 #
-<<<<<<< HEAD:src/main/resources/META-INF/services/org.forgerock.openam.plugins.AmPlugin
 
 org.forgerock.am.marketplace.pingone.PingOnePlugin
-=======
-nodeDescription=PingOne DaVinci API
-nodeHelp=Execute a PingOne DaVinci flow policy that does not have a UI component.
-region=Region
-region.help=The region that the PingOne environment is deployed in.
-environmentId=Environment ID
-environmentId.help=The PingOne environment ID. This can be copied from the application configuration.
-apiKey=API Key
-apiKey.help=The API key for the DaVinci application that includes the flow policy.
-flowPolicyId=Flow Policy ID
-flowPolicyId.help=The ID of the DaVinci flow policy to execute.
->>>>>>> master:davinci-node/src/main/resources/org/forgerock/openam/auth/nodes/DaVinciNode.properties
