@@ -12,7 +12,6 @@ import static org.forgerock.json.JsonValue.object;
 import static org.forgerock.openam.auth.nodes.helpers.ScriptedNodeHelper.WILDCARD;
 import static org.forgerock.http.protocol.Responses.noopExceptionAsyncFunction;
 import static org.forgerock.openam.social.idp.SocialIdPScriptContext.SOCIAL_IDP_PROFILE_TRANSFORMATION;
-import static org.forgerock.openam.social.idp.SocialIdPScriptContext.SOCIAL_IDP_PROFILE_TRANSFORMATION_NAME;
 import static org.forgerock.util.CloseSilentlyAsyncFunction.closeSilently;
 import static org.forgerock.util.Closeables.closeSilentlyAsync;
 
@@ -45,10 +44,11 @@ import org.forgerock.openam.auth.node.api.Action;
 import org.forgerock.openam.auth.node.api.InputState;
 import org.forgerock.openam.auth.node.api.Node;
 import org.forgerock.openam.auth.node.api.NodeProcessException;
-import org.forgerock.openam.auth.node.api.NodeState;
 import org.forgerock.openam.auth.node.api.StaticOutcomeProvider;
 import org.forgerock.openam.auth.node.api.TreeContext;
 import org.forgerock.openam.auth.nodes.oauth.SocialOAuth2Helper;
+import org.forgerock.openam.auth.service.marketplace.TNTPPingOneConfig;
+import org.forgerock.openam.auth.service.marketplace.TNTPPingOneConfigChoiceValues;
 import org.forgerock.openam.core.realms.Realm;
 import org.forgerock.openam.integration.idm.IdmIntegrationService;
 import org.forgerock.openam.scripting.application.ScriptEvaluatorFactory;
@@ -56,9 +56,6 @@ import org.forgerock.openam.scripting.domain.EvaluatorVersion;
 import org.forgerock.openam.scripting.domain.Script;
 import org.forgerock.openam.scripting.domain.ScriptException;
 import org.forgerock.openam.scripting.domain.ScriptingLanguage;
-import org.forgerock.openam.scripting.persistence.config.consumer.ScriptContext;
-import org.forgerock.openam.sm.annotations.adapters.Password;
-import org.forgerock.openam.sm.validation.URLValidator;
 import org.forgerock.openam.social.idp.ClientAuthenticationMethod;
 import org.forgerock.openam.social.idp.OAuthClientConfig;
 import org.forgerock.openam.social.idp.OpenIDConnectClientConfig;
@@ -78,7 +75,6 @@ import com.iplanet.am.util.SystemProperties;
 import com.iplanet.dpro.session.service.SessionService;
 import com.sun.identity.authentication.spi.RedirectCallback;
 import com.sun.identity.shared.Constants;
-import com.sun.identity.sm.RequiredValueValidator;
 
 
 /**
@@ -110,6 +106,7 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
   private static final Script DEFAULT_AM_TRANSFORMATION_SCRIPT;
 
   private final Config config;
+  private TNTPPingOneConfig tntpPingOneConfig;
   private final Handler handler;
   private final Script transformationScript;
 
@@ -205,10 +202,12 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
       Provider<SessionService> sessionServiceProvider,
       IdmIntegrationService idmIntegrationService,
       @Named("CloseableHttpClientHandler") Handler handler) {
-    super(config, authModuleHelper, new PingOneIdentityProviders(config), identityService, realm,
+    super(config, authModuleHelper, new PingOneIdentityProviders(config, TNTPPingOneConfigChoiceValues.getTNTPPingOneConfig(config.tntpPingOneConfigName())), identityService, realm,
         scriptEvaluatorFactory, sessionServiceProvider, idmIntegrationService);
+
     this.config = config;
     this.handler = handler;
+    this.tntpPingOneConfig = TNTPPingOneConfigChoiceValues.getTNTPPingOneConfig(config.tntpPingOneConfigName());
 
     // use the configured transformation script if configured, or one of the defaults otherwise
     if (idmIntegrationService.isEnabled()) {
@@ -301,16 +300,16 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
     }
   }
 
-  private static String getPingOneBaseUrl(Config config) {
-    return "https://auth.pingone" + config.region().getDomainSuffix() + "/" + config.environmentId() + "/as";
+  private static String getPingOneBaseUrl(TNTPPingOneConfig tntpPingOneConfig) {
+    return "https://auth.pingone" + tntpPingOneConfig.environmentRegion().getDomainSuffix() + "/" + tntpPingOneConfig.environmentId() + "/as";
   }
 
   private Promise<String, OAuthException> sendParRequest(TreeContext context, String redirectUrl) {
     // add the basic information in the PAR request
     Form form = new Form();
-    form.add("client_id", config.clientId());
+    form.add("client_id", tntpPingOneConfig.p1APIKey());
     form.add("response_type", "code");
-    form.add("redirect_uri", config.redirectURI());
+    form.add("redirect_uri", tntpPingOneConfig.p1RedirectURL());
     form.add("scope", "openid profile email address phone");
     if (!config.acrValues().isEmpty()) {
       form.add("acr_values", String.join(" ", config.acrValues()));
@@ -366,7 +365,7 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
     }
 
     // create the PAR request and send it
-    URI uri = URI.create(getPingOneBaseUrl(config) + "/par");
+    URI uri = URI.create(getPingOneBaseUrl(tntpPingOneConfig) + "/par");
     Request request = null;
 
     try {
@@ -374,7 +373,7 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
         form.toRequestEntity(request);
         request.addHeaders(new GenericHeader(
             "Authorization",
-            "BASIC " + Base64.getEncoder().encodeToString((config.clientId() + ":" + config.clientSecret()).getBytes()))
+            "BASIC " + Base64.getEncoder().encodeToString((tntpPingOneConfig.p1APIKey() + ":" + tntpPingOneConfig.p1APISecret()).getBytes()))
         );
         return handler.handle(new RootContext(), request)
             .thenAlways(closeSilentlyAsync(request))
@@ -413,53 +412,22 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
     };
   }
 
-  public enum PingOneRegion {
-    NA(".com"),
-    CA(".ca"),
-    EU(".eu"),
-    ASIA(".asia");
-
-    private final String domainSuffix;
-
-    PingOneRegion(String domainSuffix) {
-      this.domainSuffix = domainSuffix;
-    }
-
-    public String getDomainSuffix() {
-      return domainSuffix;
-    }
-  }
-
   public interface Config extends AbstractSocialProviderHandlerNode.Config {
+    /**
+     * The Configured service
+     */
+    @Attribute(order = 100, choiceValuesClass = TNTPPingOneConfigChoiceValues.class)
+    default String tntpPingOneConfigName() {
+      return TNTPPingOneConfigChoiceValues.createTNTPPingOneConfigName("Global Default");
+    };
 
-    @Attribute(order = 10, validators = {RequiredValueValidator.class})
-    default PingOneRegion region() {
-      return PingOneRegion.NA;
-    }
-
-    @Attribute(order = 20, validators = {RequiredValueValidator.class})
-    String environmentId();
-
-    @Attribute(order = 30, validators = {RequiredValueValidator.class})
-    String clientId();
-
-    @Attribute(order = 40, validators = {RequiredValueValidator.class})
-    @Password
-    String clientSecret();
-
-    @Attribute(order = 50, validators = {RequiredValueValidator.class, URLValidator.class})
-    default String redirectURI() {
-      return getServerURL();
-    }
-
-    @Attribute(order = 60)
+    @Attribute(order = 200)
     List<String> acrValues();
 
-    @Attribute(order = 70)
+    @Attribute(order = 300)
     default List<String> inputs() {
       return singletonList(WILDCARD);
     }
-
   }
 
   private static class PingOneIdentityProviders implements SocialIdentityProviders {
@@ -468,13 +436,12 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
 
     private final Map<String, OAuthClientConfig> providers;
 
-    public PingOneIdentityProviders(Config config) {
+    public PingOneIdentityProviders(Config config, TNTPPingOneConfig tntpPingOneConfig) {
       this.providers = Collections.singletonMap(
           PING_ONE_IDP_NAME,
-          new PingOneOAuthClientConfig(config)
+          new PingOneOAuthClientConfig(config, tntpPingOneConfig)
       );
     }
-
 
     @Override
     public Map<String, OAuthClientConfig> getProviders(Realm realm) {
@@ -533,22 +500,20 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
     }
 
     private final Config config;
+    private final TNTPPingOneConfig tntpPingOneConfig;
     private final String baseUrl;
 
-    public PingOneOAuthClientConfig(Config config) {
+    public PingOneOAuthClientConfig(Config config, TNTPPingOneConfig tntpPingOneConfig) {
       this.config = config;
-      this.baseUrl = getPingOneBaseUrl(config);
+      this.tntpPingOneConfig = tntpPingOneConfig;
+      this.baseUrl = getPingOneBaseUrl(tntpPingOneConfig);
     }
 
     @Override
-    public String clientId() {
-      return config.clientId();
-    }
+    public String clientId() { return tntpPingOneConfig.p1APIKey(); }
 
     @Override
-    public Optional<char[]> clientSecret() {
-      return Optional.of(config.clientSecret().toCharArray());
-    }
+    public Optional<char[]> clientSecret() {return Optional.of(tntpPingOneConfig.p1APISecret().toCharArray()); }
 
     @Override
     public String authorizationEndpoint() {
@@ -571,9 +536,7 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
     }
 
     @Override
-    public String redirectURI() {
-      return config.redirectURI();
-    }
+    public String redirectURI() { return tntpPingOneConfig.p1RedirectURL(); }
 
     @Override
     public String redirectAfterFormPostURI() {

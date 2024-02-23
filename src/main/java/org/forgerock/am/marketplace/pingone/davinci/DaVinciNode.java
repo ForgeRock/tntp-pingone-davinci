@@ -30,6 +30,8 @@ import org.forgerock.openam.auth.node.api.NodeProcessException;
 import org.forgerock.openam.auth.node.api.NodeState;
 import org.forgerock.openam.auth.node.api.StaticOutcomeProvider;
 import org.forgerock.openam.auth.node.api.TreeContext;
+import org.forgerock.openam.auth.service.marketplace.TNTPPingOneConfig;
+import org.forgerock.openam.auth.service.marketplace.TNTPPingOneConfigChoiceValues;
 import org.forgerock.util.i18n.PreferredLocales;
 
 import com.google.common.collect.ImmutableList;
@@ -53,23 +55,20 @@ public class DaVinciNode extends AbstractDecisionNode {
   private static final String ERROR = "ERROR";
 
   private final Config config;
+  private TNTPPingOneConfig tntpPingOneConfig;
   private final DaVinciClient client;
 
   /**
    * Configuration for the node.
    */
   public interface Config {
-
-    @Attribute(order = 100, validators = {RequiredValueValidator.class})
-    default PingOneRegion region() {
-      return PingOneRegion.NA;
-    }
-
-    @Attribute(order = 200, validators = {RequiredValueValidator.class})
-    String environmentId();
-
-    @Attribute(order = 300, validators = {RequiredValueValidator.class})
-    String apiKey();
+    /**
+     * The Configured service
+     */
+    @Attribute(order = 100, choiceValuesClass = TNTPPingOneConfigChoiceValues.class)
+    default String tntpPingOneConfigName() {
+      return TNTPPingOneConfigChoiceValues.createTNTPPingOneConfigName("Global Default");
+    };
 
     @Attribute(order = 400, validators = {RequiredValueValidator.class})
     String flowPolicyId();
@@ -84,6 +83,7 @@ public class DaVinciNode extends AbstractDecisionNode {
   public DaVinciNode(@Assisted Config config, DaVinciClient client) {
     this.config = config;
     this.client = client;
+    this.tntpPingOneConfig = TNTPPingOneConfigChoiceValues.getTNTPPingOneConfig(config.tntpPingOneConfigName());
   }
 
   @Override
@@ -125,10 +125,10 @@ public class DaVinciNode extends AbstractDecisionNode {
     try {
       // execute the flow
       FlowResult result = client.executeFlowPolicy(
-          config.region(),
-          config.environmentId(),
+          tntpPingOneConfig.environmentRegion(),
+          tntpPingOneConfig.environmentId(),
           config.flowPolicyId(),
-          config.apiKey(),
+          tntpPingOneConfig.dvAPIKey(),
           flowInput);
 
       nodeState.putShared("flowOutput", result.getResponse());
@@ -147,14 +147,6 @@ public class DaVinciNode extends AbstractDecisionNode {
     }
 
   }
-
-  /*@Override
-  public InputState[] getInputs() {
-    // include all inputs so that we can pass them to P1
-    return new InputState[]{
-        new InputState(NodeState.STATE_FILTER_WILDCARD)
-    };
-  }*/
 
   @Override
   public InputState[] getInputs() {

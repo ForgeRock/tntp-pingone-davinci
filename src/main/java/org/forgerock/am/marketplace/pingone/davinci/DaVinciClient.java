@@ -17,6 +17,7 @@ import org.forgerock.http.protocol.Request;
 import org.forgerock.http.protocol.Response;
 import org.forgerock.json.JsonValue;
 import org.forgerock.openam.auth.node.api.NodeProcessException;
+import org.forgerock.openam.auth.service.marketplace.TNTPPingOneConfig;
 import org.forgerock.services.context.RootContext;
 import org.forgerock.util.thread.listener.ShutdownManager;
 import org.slf4j.Logger;
@@ -52,7 +53,7 @@ public class DaVinciClient {
    * error. The input schema for the flow should match the input that is passed in here.
    */
   public FlowResult executeFlowPolicy(
-      PingOneRegion region,
+      TNTPPingOneConfig.PingOneRegion region,
       String environmentId,
       String flowPolicyId,
       String apiKey,
