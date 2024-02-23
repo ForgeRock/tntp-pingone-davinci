@@ -7,10 +7,14 @@
 package org.forgerock.am.marketplace.pingone.idp;
 
 import static java.util.Collections.singletonList;
+<<<<<<< HEAD:src/main/java/org/forgerock/am/marketplace/pingone/idp/PingOneIdentityProviderHandlerNode.java
 import static org.forgerock.json.JsonValue.json;
 import static org.forgerock.json.JsonValue.object;
 import static org.forgerock.openam.auth.nodes.helpers.ScriptedNodeHelper.WILDCARD;
+=======
+>>>>>>> master:pingone-idp-node/src/main/java/org/forgerock/openam/auth/nodes/PingOneIdentityProviderHandlerNode.java
 import static org.forgerock.http.protocol.Responses.noopExceptionAsyncFunction;
+import static org.forgerock.openam.auth.nodes.helpers.ScriptedNodeHelper.WILDCARD;
 import static org.forgerock.openam.social.idp.SocialIdPScriptContext.SOCIAL_IDP_PROFILE_TRANSFORMATION;
 import static org.forgerock.util.CloseSilentlyAsyncFunction.closeSilently;
 import static org.forgerock.util.Closeables.closeSilentlyAsync;
@@ -209,7 +213,11 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
     this.handler = handler;
     this.tntpPingOneConfig = TNTPPingOneConfigChoiceValues.getTNTPPingOneConfig(config.tntpPingOneConfigName());
 
+<<<<<<< HEAD:src/main/java/org/forgerock/am/marketplace/pingone/idp/PingOneIdentityProviderHandlerNode.java
     // use the configured transformation script if configured, or one of the defaults otherwise
+=======
+
+>>>>>>> master:pingone-idp-node/src/main/java/org/forgerock/openam/auth/nodes/PingOneIdentityProviderHandlerNode.java
     if (idmIntegrationService.isEnabled()) {
       transformationScript = DEFAULT_IDM_TRANSFORMATION_SCRIPT;
     } else {
@@ -285,8 +293,6 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
     return transformationScript;
   }
 
-  // TODO: This was copied from AbstractSocialAuthLoginNode.getServerURL.
-  // Use it from there when moved into openam-auth-trees/auth-nodes.
   private static String getServerURL() {
     final String protocol = SystemProperties.get(Constants.AM_SERVER_PROTOCOL);
     final String host = SystemProperties.get(Constants.AM_SERVER_HOST);
@@ -330,6 +336,7 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
 
     // add information from the node state to the PAR request
     JsonValue filteredShared = filterInputs(context.sharedState);
+<<<<<<< HEAD:src/main/java/org/forgerock/am/marketplace/pingone/idp/PingOneIdentityProviderHandlerNode.java
     JsonValue filteredTransient = filterInputs(context.transientState);
 
     // filter shared state
@@ -351,6 +358,11 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
     // filter transient state
     for (String key : filteredTransient.keys()) {
       JsonValue value = filteredTransient.get(key);
+=======
+
+    for (String key : filteredShared.keys()) {
+      JsonValue value = filteredShared.get(key);
+>>>>>>> master:pingone-idp-node/src/main/java/org/forgerock/openam/auth/nodes/PingOneIdentityProviderHandlerNode.java
       String stringifiedValue;
       if (value.isBoolean()) {
         stringifiedValue = value.asBoolean().toString();
@@ -412,6 +424,26 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
     };
   }
 
+<<<<<<< HEAD:src/main/java/org/forgerock/am/marketplace/pingone/idp/PingOneIdentityProviderHandlerNode.java
+=======
+  public enum PingOneRegion {
+    NA(".com"),
+    CA(".ca"),
+    EU(".eu"),
+    ASIA(".asia");
+
+    private final String domainSuffix;
+
+    PingOneRegion(String domainSuffix) {
+      this.domainSuffix = domainSuffix;
+    }
+
+    public String getDomainSuffix() {
+      return domainSuffix;
+    }
+  }
+
+>>>>>>> master:pingone-idp-node/src/main/java/org/forgerock/openam/auth/nodes/PingOneIdentityProviderHandlerNode.java
   public interface Config extends AbstractSocialProviderHandlerNode.Config {
     /**
      * The Configured service
@@ -421,6 +453,7 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
       return TNTPPingOneConfigChoiceValues.createTNTPPingOneConfigName("Global Default");
     };
 
+<<<<<<< HEAD:src/main/java/org/forgerock/am/marketplace/pingone/idp/PingOneIdentityProviderHandlerNode.java
     @Attribute(order = 200)
     List<String> acrValues();
 
@@ -428,6 +461,36 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
     default List<String> inputs() {
       return singletonList(WILDCARD);
     }
+=======
+    @Attribute(order = 10, validators = {RequiredValueValidator.class})
+    default PingOneRegion region() {
+      return PingOneRegion.NA;
+    }
+
+    @Attribute(order = 20, validators = {RequiredValueValidator.class})
+    String environmentId();
+
+    @Attribute(order = 30, validators = {RequiredValueValidator.class})
+    String clientId();
+
+    @Attribute(order = 40, validators = {RequiredValueValidator.class})
+    @Password
+    String clientSecret();
+
+    @Attribute(order = 50, validators = {RequiredValueValidator.class, URLValidator.class})
+    default String redirectURI() {
+      return getServerURL();
+    }
+
+    @Attribute(order = 60)
+    List<String> acrValues();
+
+    @Attribute(order = 70)
+    default List<String> inputs() {
+      return singletonList(WILDCARD);
+    }
+
+>>>>>>> master:pingone-idp-node/src/main/java/org/forgerock/openam/auth/nodes/PingOneIdentityProviderHandlerNode.java
   }
 
   private static class PingOneIdentityProviders implements SocialIdentityProviders {

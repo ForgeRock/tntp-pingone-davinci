@@ -50,10 +50,14 @@ import org.slf4j.LoggerFactory;
  */
 public class PingOnePlugin extends AbstractNodeAmPlugin {
 
+<<<<<<< HEAD:src/main/java/org/forgerock/am/marketplace/pingone/PingOnePlugin.java
 	static private String currentVersion = "0.0.12";
 	public static final String logAppender = "[Version: " + currentVersion + "][Marketplace] ";
 	private final Logger logger = LoggerFactory.getLogger(PingOnePlugin.class);
 	private String loggerPrefix = "[PingOnePlugin]" + PingOnePlugin.logAppender;
+=======
+	private static final String currentVersion = "0.0.1";
+>>>>>>> master:pingone-idp-node/src/main/java/org/forgerock/openam/auth/nodes/PingOneIdentityProviderHandlerNodePlugin.java
 	
     /** 
      * Specify the Map of list of node classes that the plugin is providing. These will then be installed and
@@ -103,6 +107,7 @@ public class PingOnePlugin extends AbstractNodeAmPlugin {
      */	
 	@Override
 	public void upgrade(String fromVersion) throws PluginException {
+<<<<<<< HEAD:src/main/java/org/forgerock/am/marketplace/pingone/PingOnePlugin.java
 		logger.error(loggerPrefix + "fromVersion = " + fromVersion);
 		logger.error(loggerPrefix + "currentVersion = " + currentVersion);
 		try {
@@ -111,6 +116,9 @@ public class PingOnePlugin extends AbstractNodeAmPlugin {
 		} catch (Exception e) {
 			throw new PluginException(e.getMessage());
 		}
+=======
+		pluginTools.upgradeAuthNode(PingOneIdentityProviderHandlerNodePlugin.class);
+>>>>>>> master:pingone-idp-node/src/main/java/org/forgerock/openam/auth/nodes/PingOneIdentityProviderHandlerNodePlugin.java
 		super.upgrade(fromVersion);
 	}
 
