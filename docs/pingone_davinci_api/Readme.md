@@ -4,32 +4,91 @@
  * Copyright 2024 Ping Identity Corporation. All Rights Reserved
 -->
 
-# PingOne
+# PingOne DaVinci API
 
-The PingOne node establishes trust between PingOne and Identity Cloud by leveraging a federated connection.
+This node executes an API call to PingOne DaVinci to launch a specific DaVinci flow.  Note, as this node is using the DaVinci flow API integration method, it is only effective for DaVinci flows without a UI component.
 
-Identity Cloud provides the following artifacts to enable the PingOne node:
+Identity Cloud provides the following artifacts to enable the PingOne DaVinci API node:
 
 * [PingOne service](https://github.com/ForgeRock/tntp-ping-service/tree/cloudprep?tab=readme-ov-file#ping-one-service)
-* [PingOne node](TBD)
+* [PingOne DaVinci API node](TBD)
 
-You must set up the following before using the PingOne node:
+You must set up the following before using the PingOne DaVinci API node:
 
-* [A PingOne OIDC Application configured to your Identity Cloud instance](https://docs.pingidentity.com/r/en-us/pingone/pingone_creating_verify_policy)
 * [PingOne service](https://github.com/ForgeRock/tntp-ping-service/tree/cloudprep?tab=readme-ov-file#ping-one-service)
+* [A PingOne DaVinci Application with a configured Flow Policy](https://docs.pingidentity.com/r/en-us/davinci/davinci_api_flow_launch_creating_application)
 
 For more information on this node, refer to PingOne Verify node
 
-## PingOne Verify setup
+## PingOne DaVinci setup
 You must set up the following before using the PingOne Verify node:
 
-* [Create a verify policy](https://docs.pingidentity.com/r/en-us/pingone/pingone_creating_verify_policy)
-* [Create a worker application](https://docs.pingidentity.com/r/en-us/pingone/p1_add_app_worker)
-  * Requires [Identity Data Admin](https://apidocs.pingidentity.com/pingone/platform/v1/api/#roles) role
-* [PingOne service](https://github.com/ForgeRock/tntp-ping-service/tree/cloudprep?tab=readme-ov-file#ping-one-service)
+### Preparing the PingOne DaVinci flow
 
-## PingOne Verify node
-The PingOne Verify node utilizes the PingOne Verify service to secure user verification.
+This procedure only covers the steps and nodes required to prepare a PingOne DaVinci flow for API invocation.
+It assumes that you have already created a PingOne DaVinci flow for the purpose you have in mind.
+
+1. From within PingOne DaVinci, click the Flows tab.
+2. Find the flow and click > Edit
+3. At the end of the success path, add an HTTP node to send a JSON success response.
+4. At the end of any failure paths, add an HTTP node to send a JSON error response.
+5. Click Save.
+6. Click Deploy.
+
+Further details [PingOne DaVinci: Configuring the Flow](https://docs.pingidentity.com/r/en-us/davinci/davinci_api_flow_launch_configuring_flow)
+
+### Configure the Input Schema
+
+The PingOne DaVinci API node will send the Journey Node State to the PingOne DaVinci flow, this Node State must be configured as an Input Parameter for the PingOne DaVinci flow.
+
+1. Next, click on Input Schema on the DaVinci flow canvas.
+2. Click Add to add an input parameter.
+3. Enter **nodeState** as the parameter name.
+4. Select **Object** as the parameter data type.
+5. Click Save as shown below:
+
+![ScreenShot](./pingone_davinci_input_schema.png)
+
+### Creating a PingOne DaVinci Application
+
+1. From within PingOne DaVinci, click the Applications tab.
+2. Click Add Application.
+3. The Add Application modal opens.
+4. In the Name field, enter a name for the application.
+5. Click Create.
+6. Find the application and click Edit.
+7. On the General tab, note the following parameters:
+8. Note the Company ID.
+9. Note the API Key.
+10. Create a flow policy:
+11. Click the Flow Policy tab.
+12. Click + Add Flow Policy.
+13. In the Name field, enter a name for the flow policy.
+14. In the flow list, select your flow.
+15. In the version list, select the desired flow version.
+16. Click Create Flow Policy.
+17. Click Save Flow Policy.
+18. Note and record the Policy ID of your flow policy.
+
+Further details: [PingOne DaVinci: Create Application](https://docs.pingidentity.com/r/en-us/davinci/davinci_api_flow_launch_creating_application)
+
+### Configure PingOne DaVinci API node in the Journey
+
+Now, the next steps will cover how to configure the PingOne DaVinci API node in Identity Cloud.
+
+1. From within Identity Cloud, configure the following fields in the PingOne Service, refer to [PingOne service](https://github.com/ForgeRock/tntp-ping-service/tree/cloudprep?tab=readme-ov-file#ping-one-service)
+  * Environment ID
+  * Environment Region
+  * PingOne DaVinci API Key
+
+2. Navigate to the Journey and add the PingOne Davinci API node to the Journey canvas and select it.
+3. Enter the Policy ID into the Flow Policy ID field of the node.
+4. Optionally configure the specific attributes from the Node State to be sent over to PingOne Davinci by using the Input field, otherwise leave the * wildcard character to send the entire Node state to PingOne DaVinci.
+
+The PingOne DaVinci API node has 3 outcomes, True, False and Error, configure the outcomes to the rest of the Journey as required.  Any data returned in the DaVinci success response will be available in the Identity Cloud Node State.  A scripted decision node can be used to access that data as shown below:
+
+## PingOne DaVinci API node
+The PingOne DaVinci API node will execute any DaVinci flow that does not render any UI screens.  
 
 ### Compatibility
 ***
@@ -63,7 +122,7 @@ The PingOne Verify node utilizes the PingOne Verify service to secure user verif
 
 ### Inputs
 ***
-Any data in the node state that needs to be sent to PingOne Verify for verification or authentication purposes.
+By default any data in the node state will be sent to the PingOne DaVinci flow in the nodeState input parameter.  It is possible to filter the properties sent to PingOne DaVinci by using the Input property in the tree node configuration. 
 
 ### Dependencies
 ***
@@ -86,174 +145,53 @@ The configurable properties for this node are:
 								<p class="p">PingOne Service</p>
 							</td>
 							<td class="entry colsep-1 rowsep-1" headers="jzf1692634635960__table_y2d_vml_nyb__entry__2">
-                The PingOne Service used for this Verify Node</td>
+                The PingOne Service used for this DaVinci API Node</td>
 						</tr>
 
 
 
 <tr>
     <td>
-        PingOne Verify UserID
+        Flow Policy ID
     </td>
     <td>
-        Name of the local attribute to store the PingOne UserID
+        The PingOne DaVinci Flow Policy configured for the specific flow.    
     </td>
 </tr>
 <tr>
     <td>
-        PingOne Verify Policy ID
+        Inputs
     </td>
     <td>
-        PingOne Verify Policy ID to be used in this flow
+        A multi-value field which can used to select specific Node State attributes to include the API request to PingOne DaVinci.  By default the Wildcard * value will include the entire Journey Node State in the API request to PingOne DaVinci.
     </td>
 </tr>
 
-<tr>
-    <td>
-        Verify URL delivery mode
-    </td>
-<td>
-Options are QR code, E-mail and SMS
-</td>
-</tr>
-
-<tr>
-<td>
-Allow user to choose the verification url delivery method
-</td>
-<td>
-If checked user will be prompted for delivery method
-</td>
-</tr>
-
-<tr>
-<td>
-Flow Type
-</td>
-
-<td>
-REGISTRATION (map verified document claims to objectProperties), VERIFICATION (match directory service attributes to verified document claims), AUTHENTICATION (a new live photo (selfie) compared with a reference photo provided)
-</td>
-</tr>
-
-<tr>
-<td>
-Reference Photo
-</td>
-
-<td>
-If using the AUTHENTICATION flow type above, this parameter refers to the name of the attribute that contains the reference photo used to send to PingOne Verify. The attribute must exist either in the nodestate or in the local datastore.
-</td>
-</tr>
-
-<tr>
-<td>
-Age threshold
-</td>
-
-<td>
-If specified (in years), node will extract DOB from the claims and validate if equal or greater than specified (0 or empty to disable age check)
-</td>
-</tr>
-
-<tr>
-<td>
-Document Type Required for Registration
-</td>
-<td>
-Options are DEFAULT, DRIVING_LICENSE, PASSPORT, or ID_CARD.  Used only for REGISTRATION flow type
-</td>
-</tr>
-
-<tr>
-<td>
-Fail expired documents
-</td>
-<td>
-For documents that contain expiration date, fail if out of date
-</td>
-</tr>
-
-<tr>
-<td>
-Submission timeout
-</td>
-<td>
-Verification submission timeout in seconds. Value must be under authentication session validity time.
-</td>
-</tr>
-
-<tr>
-<td>Save verified claims from PingOne Verify to sharedState</td>
-<td>Saves verified claims from PingOne Verify API response to sharedState as a JSON object</td>
-</tr>
-
-<tr>
-<td>Save verification metadata from PingOne Verify to sharedState</td>
-<td>Saves verification explanation data from PingOne Verify to sharedState as a JSON array</td>
-</tr>
-
-<tr>
-<td>Attribute Map</td>
-<td>Map for picking which PingOne Verify Verified Claim(s) should correspond with the local datastore attribute(s). The KEY should be the PingOne Verify JSON key and the VALUE should be the corresponding local datastore attribute. This is used for the REGISTRATION and VERIFICATION scenarios (PingOne Verify to local datastore and local datastore to PingOne Verify)</td>
-</tr>
-
-<tr>
-<td>Attributes to match</td>
-<td>Specify the user attributes that have to match, following a successful verification by PingOne Verify (matching existing user attributes to verified claims)</td>
-</tr>
-
-<tr>
-<td>Preserve matched attributes</td>
-<td>If in a REGISTRATION flow type, tick this flag to preserve attributes that user provided prior to verification process. Otherwise the returned verified claims will be used.</td>
-</tr>
-
-<tr>
-<td>Imprecise matching attribute confidence map</td>
-<td>If selected, the user's attribute(s) are verified with imprecise matching in PingOne Verify (those attribute(s) must be present in the 'Attributes to match' configuration above). The value represents the minimum confidence level to mark a verification successful. Value options are LOW, MEDIUM, or HIGH.</td>
-</tr>
-
-<tr>
-<td>Attribute lookup</td>
-<td>If true, during a VERIFICATION flow type, the node will use the local datastore to lookup the 'Attributes to match' from the configuration above.  Otherwise, if false, objectAttributes in shared state are used.</td>
-</tr>
-
-<tr>
-<td>Demo mode</td>
-<td>When checked, the node always returns SUCCESS outcome with example data</td>
-</tr>
 
 </tbody></table>
 
 
 ### Outputs
 ***
-Depending on the configurations selected, the following may be the output for this node:
-* Verified claims from PingOne Verify
-* Verification metadata from PingOne Verify
+Any data configured to be returned to the PingOne DaVinci flow will be put into Node State.
 
-### Outcomes
-***
-`Success`
+## Outcomes
 
-Successful attempt to get verified data
+---
 
-`Fail`
+***True***
 
-Failed to get verified data
+- The PingOne DaVinci flow executed and returned a Success response.
 
-`Error`
+***False***
 
-Reasons for Error could be that the session expired, UserID not defined, or value
-missing in shared state
+- The PingOne DaVinci flow executed and returned an Error response.
 
-`No ID Match`
+***Error***
 
-The PingOne pseudoanonymized userId provided (stored on the user or in SharedState), does not match any ID in PingOne
+- An error occurred causing the request to fail. Check the response code, response body, or logs to see more details of the error.
 
-`Age Failed`
 
-The age limit set, was not met
 ### Troubleshooting
 ***
 If this node logs an error, review the log messages to find the reason for the error and address the issue appropriately.
