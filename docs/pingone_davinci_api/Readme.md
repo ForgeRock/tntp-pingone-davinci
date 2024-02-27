@@ -22,9 +22,13 @@ For more information on this node, refer to PingOne Verify node
 
 ## PingOne DaVinci setup
 You must set up the following before using the PingOne Verify node:
+* [Preparing the PingOne DaVinci flow](TODO)
+* [Configure the Input Schema](TODO)
+* [Creating a PingOne DaVinci Application](TODO)
+* [PingOne service](https://github.com/ForgeRock/tntp-ping-service/tree/cloudprep?tab=readme-ov-file#ping-one-service)
 
 ### Preparing the PingOne DaVinci flow
-
+***
 This procedure only covers the steps and nodes required to prepare a PingOne DaVinci flow for API invocation.
 It assumes that you have already created a PingOne DaVinci flow for the purpose you have in mind.
 
@@ -38,7 +42,7 @@ It assumes that you have already created a PingOne DaVinci flow for the purpose 
 Further details [PingOne DaVinci: Configuring the Flow](https://docs.pingidentity.com/r/en-us/davinci/davinci_api_flow_launch_configuring_flow)
 
 ### Configure the Input Schema
-
+***
 The PingOne DaVinci API node will send the Journey Node State to the PingOne DaVinci flow, this Node State must be configured as an Input Parameter for the PingOne DaVinci flow.
 
 1. Next, click on Input Schema on the DaVinci flow canvas.
@@ -50,7 +54,7 @@ The PingOne DaVinci API node will send the Journey Node State to the PingOne DaV
 ![ScreenShot](./pingone_davinci_input_schema.png)
 
 ### Creating a PingOne DaVinci Application
-
+***
 1. From within PingOne DaVinci, click the Applications tab.
 2. Click Add Application.
 3. The Add Application modal opens.
@@ -72,23 +76,10 @@ The PingOne DaVinci API node will send the Journey Node State to the PingOne DaV
 
 Further details: [PingOne DaVinci: Create Application](https://docs.pingidentity.com/r/en-us/davinci/davinci_api_flow_launch_creating_application)
 
-### Configure PingOne DaVinci API node in the Journey
 
-Now, the next steps will cover how to configure the PingOne DaVinci API node in Identity Cloud.
-
-1. From within Identity Cloud, configure the following fields in the PingOne Service, refer to [PingOne service](https://github.com/ForgeRock/tntp-ping-service/tree/cloudprep?tab=readme-ov-file#ping-one-service)
-  * Environment ID
-  * Environment Region
-  * PingOne DaVinci API Key
-
-2. Navigate to the Journey and add the PingOne Davinci API node to the Journey canvas and select it.
-3. Enter the Policy ID into the Flow Policy ID field of the node.
-4. Optionally configure the specific attributes from the Node State to be sent over to PingOne Davinci by using the Input field, otherwise leave the * wildcard character to send the entire Node state to PingOne DaVinci.
-
-The PingOne DaVinci API node has 3 outcomes, True, False and Error, configure the outcomes to the rest of the Journey as required.  Any data returned in the DaVinci success response will be available in the Identity Cloud Node State.  A scripted decision node can be used to access that data as shown below:
 
 ## PingOne DaVinci API node
-The PingOne DaVinci API node will execute any DaVinci flow that does not render any UI screens.  
+The PingOne DaVinci API node will execute any DaVinci flow that does not render any UI screens.
 
 ### Compatibility
 ***
@@ -122,7 +113,7 @@ The PingOne DaVinci API node will execute any DaVinci flow that does not render 
 
 ### Inputs
 ***
-By default any data in the node state will be sent to the PingOne DaVinci flow in the nodeState input parameter.  It is possible to filter the properties sent to PingOne DaVinci by using the Input property in the tree node configuration. 
+By default any data in the node state will be sent to the PingOne DaVinci flow in the nodeState input parameter.  It is possible to filter the properties sent to PingOne DaVinci by using the Input property in the tree node configuration.
 
 ### Dependencies
 ***
@@ -201,5 +192,4 @@ If this node logs an error, review the log messages to find the reason for the e
 This example journey highlights the use of the PingOne Verify node for a Registration
 
 ![ScreenShot](./example.png)
-
 
