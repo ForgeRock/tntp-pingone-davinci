@@ -14,17 +14,19 @@ Identity Cloud provides the following artifacts to enable the PingOne DaVinci AP
 * [PingOne DaVinci API node](TBD)
 
 You must set up the following before using the PingOne DaVinci API node:
-
+* [Preparing the PingOne DaVinci flow](https://github.com/ForgeRock/tntp-pingone-davinci/blob/cloudprep/docs/pingone_davinci_api/Readme.md#preparing-the-pingone-davinci-flow)
+* [Configure the Input Schema](https://github.com/ForgeRock/tntp-pingone-davinci/blob/cloudprep/docs/pingone_davinci_api/Readme.md#configure-the-input-schema)
+* [Creating a PingOne DaVinci Application](https://github.com/ForgeRock/tntp-pingone-davinci/blob/cloudprep/docs/pingone_davinci_api/Readme.md#creating-a-pingone-davinci-application)
 * [PingOne service](https://github.com/ForgeRock/tntp-ping-service/tree/cloudprep?tab=readme-ov-file#ping-one-service)
-* [A PingOne DaVinci Application with a configured Flow Policy](https://docs.pingidentity.com/r/en-us/davinci/davinci_api_flow_launch_creating_application)
 
-For more information on this node, refer to PingOne Verify node
+For more information on this node, refer to PingOne DaVinci API node.
 
 ## PingOne DaVinci setup
 You must set up the following before using the PingOne DaVinci API node:
-
+* [Preparing the PingOne DaVinci flow](https://github.com/ForgeRock/tntp-pingone-davinci/blob/cloudprep/docs/pingone_davinci_api/Readme.md#preparing-the-pingone-davinci-flow)
+* [Configure the Input Schema](https://github.com/ForgeRock/tntp-pingone-davinci/blob/cloudprep/docs/pingone_davinci_api/Readme.md#configure-the-input-schema)
+* [Creating a PingOne DaVinci Application](https://github.com/ForgeRock/tntp-pingone-davinci/blob/cloudprep/docs/pingone_davinci_api/Readme.md#creating-a-pingone-davinci-application)
 * [PingOne service](https://github.com/ForgeRock/tntp-ping-service/tree/cloudprep?tab=readme-ov-file#ping-one-service)
-* [A PingOne DaVinci Application with a configured Flow Policy](https://docs.pingidentity.com/r/en-us/davinci/davinci_api_flow_launch_creating_application)
 
 ### Preparing the PingOne DaVinci flow
 ***
