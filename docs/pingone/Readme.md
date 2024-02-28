@@ -11,11 +11,11 @@ The PingOne node establishes trust between PingOne and Identity Cloud by leverag
 Identity Cloud provides the following artifacts to enable the PingOne node:
 
 * [PingOne service](https://github.com/ForgeRock/tntp-ping-service/tree/cloudprep?tab=readme-ov-file#ping-one-service)
-* [PingOne node](TBD)
+* [PingOne node](https://github.com/ForgeRock/tntp-pingone-davinci/tree/cloudprep/docs/pingone#pingone-node)
 
 You must set up the following before using the PingOne node:
 
-* [A PingOne OIDC Application configured to your Identity Cloud instance](https://docs.pingidentity.com/r/en-us/pingone/pingone_creating_verify_policy)
+* [A PingOne OIDC Application configured to your Identity Cloud instance](https://github.com/ForgeRock/tntp-pingone-davinci/tree/cloudprep/docs/pingone#a-pingone-oidc-application-configured-to-your-identity-cloud-instance)
 * [PingOne service](https://github.com/ForgeRock/tntp-ping-service/tree/cloudprep?tab=readme-ov-file#ping-one-service)
 
 For more information on this node, refer to the PingOne node
@@ -23,7 +23,7 @@ For more information on this node, refer to the PingOne node
 ## PingOne setup
 You must set up the following before using the PingOne node:
 
-* [A PingOne OIDC Application configured to your Identity Cloud instance](https://docs.pingidentity.com/r/en-us/pingone/pingone_creating_verify_policy)
+* [A PingOne OIDC Application configured to your Identity Cloud instance](https://github.com/ForgeRock/tntp-pingone-davinci/tree/cloudprep/docs/pingone#a-pingone-oidc-application-configured-to-your-identity-cloud-instance)
 * [PingOne service](https://github.com/ForgeRock/tntp-ping-service/tree/cloudprep?tab=readme-ov-file#ping-one-service)
 
 ### A PingOne OIDC Application configured to your Identity Cloud instance
