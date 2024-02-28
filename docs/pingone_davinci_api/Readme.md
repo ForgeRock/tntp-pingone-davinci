@@ -11,7 +11,7 @@ This node executes an API call to PingOne DaVinci to launch a specific DaVinci f
 Identity Cloud provides the following artifacts to enable the PingOne DaVinci API node:
 
 * [PingOne service](https://github.com/ForgeRock/tntp-ping-service/tree/cloudprep?tab=readme-ov-file#ping-one-service)
-* [PingOne DaVinci API node](TBD)
+* [PingOne DaVinci API node](https://github.com/ForgeRock/tntp-pingone-davinci/blob/cloudprep/docs/pingone_davinci_api/Readme.md#pingone-davinci-api-node)
 
 You must set up the following before using the PingOne DaVinci API node:
 * [Preparing the PingOne DaVinci flow](https://github.com/ForgeRock/tntp-pingone-davinci/blob/cloudprep/docs/pingone_davinci_api/Readme.md#preparing-the-pingone-davinci-flow)
