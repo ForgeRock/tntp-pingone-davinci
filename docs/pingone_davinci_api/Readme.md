@@ -50,9 +50,9 @@ The PingOne DaVinci API node will send the Journey Node State to the PingOne DaV
 2. Click Add to add an input parameter.
 3. Enter **nodeState** as the parameter name.
 4. Select **Object** as the parameter data type.
-5. Click Save as shown below:
+5. Click Save.
 
-![ScreenShot](./pingone_davinci_input_schema.png)
+
 
 ### Creating a PingOne DaVinci Application
 ***
