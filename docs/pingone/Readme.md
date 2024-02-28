@@ -18,13 +18,31 @@ You must set up the following before using the PingOne node:
 * [A PingOne OIDC Application configured to your Identity Cloud instance](https://docs.pingidentity.com/r/en-us/pingone/pingone_creating_verify_policy)
 * [PingOne service](https://github.com/ForgeRock/tntp-ping-service/tree/cloudprep?tab=readme-ov-file#ping-one-service)
 
-For more information on this node, refer to PingOne node
+For more information on this node, refer to the PingOne node
 
 ## PingOne setup
 You must set up the following before using the PingOne node:
 
 * [A PingOne OIDC Application configured to your Identity Cloud instance](https://docs.pingidentity.com/r/en-us/pingone/pingone_creating_verify_policy)
 * [PingOne service](https://github.com/ForgeRock/tntp-ping-service/tree/cloudprep?tab=readme-ov-file#ping-one-service)
+
+### A PingOne OIDC Application configured to your Identity Cloud instance
+***
+From the PingOne environment, use the Applications page to add an application to be used by Identity Cloud to connect to PingOne.
+
+1. Go to **Applications** -> **Applications**.
+2. Click the **+** icon.
+3. Create the application profile by entering the following:
+  * **Application name**: Identity Cloud Federation
+  * **Description** (optional): Enables federation from Identity Cloud to PingOne
+4. Choose the OIDC Web App for Application Type.
+5. Click Save
+6. Once the Application is created, click the **Configuration** tab and then click the **Pencil** icon to edit the Application.
+7. Under **PKCE Enforcement** click the drop-down and select **S256_REQUIRED**.
+8. Under **Token Endpoint Authentication Method** click the drop-down and select **Client Secret Post**.
+9. Next, click the **Require Pushed Authorization Request** checkbox.
+10. Finally, enter the **Redirect URIs** of the ForgeRock AM instance.
+11. Click **Save** and enable the **Application** by clicking on the toggle button.
 
 ## PingOne node
 The PingOne node establishes trust between PingOne and Identity Cloud by leveraging a federated connection.
@@ -143,5 +161,3 @@ If this node logs an error, review the log messages to find the reason for the e
 This example journey highlights the use of the PingOne node
 
 ![ScreenShot](./example.png)
-
-
