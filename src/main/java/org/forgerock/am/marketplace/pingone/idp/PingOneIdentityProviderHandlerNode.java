@@ -285,21 +285,6 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
     return transformationScript;
   }
 
-  // TODO: This was copied from AbstractSocialAuthLoginNode.getServerURL.
-  // Use it from there when moved into openam-auth-trees/auth-nodes.
-  private static String getServerURL() {
-    final String protocol = SystemProperties.get(Constants.AM_SERVER_PROTOCOL);
-    final String host = SystemProperties.get(Constants.AM_SERVER_HOST);
-    final String port = SystemProperties.get(Constants.AM_SERVER_PORT);
-    final String descriptor = SystemProperties.get(Constants.AM_SERVICES_DEPLOYMENT_DESCRIPTOR);
-
-    if (protocol != null && host != null && port != null && descriptor != null) {
-      return protocol + "://" + host + ":" + port + descriptor;
-    } else {
-      return "";
-    }
-  }
-
   private static String getPingOneBaseUrl(TNTPPingOneConfig tntpPingOneConfig) {
     return "https://auth.pingone" + tntpPingOneConfig.environmentRegion().getDomainSuffix() + "/" + tntpPingOneConfig.environmentId() + "/as";
   }
@@ -424,7 +409,7 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
     @Attribute(order = 200)
     List<String> acrValues();
 
-    @Attribute(order = 300)
+    @Attribute(order = 400)  // 300 is used by the userAttribute from the abstract class
     default List<String> inputs() {
       return singletonList(WILDCARD);
     }

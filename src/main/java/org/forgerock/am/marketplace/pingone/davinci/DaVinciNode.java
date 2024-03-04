@@ -88,7 +88,6 @@ public class DaVinciNode extends AbstractDecisionNode {
 
   @Override
   public Action process(TreeContext context) throws NodeProcessException {
-
     // create the flow input based on the node state
     NodeState nodeState = context.getStateFor(this);
 
