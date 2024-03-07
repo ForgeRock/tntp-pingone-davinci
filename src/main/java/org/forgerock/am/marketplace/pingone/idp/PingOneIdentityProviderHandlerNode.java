@@ -1,21 +1,22 @@
 /*
- * This code is to be used exclusively in connection with ForgeRock’s software or services.
- * ForgeRock only offers ForgeRock software or services to legal entities who have entered
- * into a binding license agreement with ForgeRock.
+ * This code is to be used exclusively in connection with Ping Identity Corporation software or services. 
+ * Ping Identity Corporation only offers such software or services to legal entities who have entered into 
+ * a binding license agreement with Ping Identity Corporation.
+ *
+ * Copyright 2024 Ping Identity Corporation. All Rights Reserved
  */
 
 package org.forgerock.am.marketplace.pingone.idp;
 
 import static java.util.Collections.singletonList;
+import static org.forgerock.http.protocol.Responses.noopExceptionAsyncFunction;
 import static org.forgerock.json.JsonValue.json;
 import static org.forgerock.json.JsonValue.object;
 import static org.forgerock.openam.auth.nodes.helpers.ScriptedNodeHelper.WILDCARD;
-import static org.forgerock.http.protocol.Responses.noopExceptionAsyncFunction;
 import static org.forgerock.openam.social.idp.SocialIdPScriptContext.SOCIAL_IDP_PROFILE_TRANSFORMATION;
 import static org.forgerock.util.CloseSilentlyAsyncFunction.closeSilently;
 import static org.forgerock.util.Closeables.closeSilentlyAsync;
 
-import java.util.Date;
 import java.net.URI;
 import java.util.Base64;
 import java.util.Collections;
@@ -43,7 +44,6 @@ import org.forgerock.openam.annotations.sm.Attribute;
 import org.forgerock.openam.auth.node.api.Action;
 import org.forgerock.openam.auth.node.api.InputState;
 import org.forgerock.openam.auth.node.api.Node;
-import org.forgerock.openam.auth.node.api.NodeProcessException;
 import org.forgerock.openam.auth.node.api.StaticOutcomeProvider;
 import org.forgerock.openam.auth.node.api.TreeContext;
 import org.forgerock.openam.auth.nodes.oauth.SocialOAuth2Helper;
@@ -71,10 +71,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableList;
 import com.google.inject.assistedinject.Assisted;
-import com.iplanet.am.util.SystemProperties;
 import com.iplanet.dpro.session.service.SessionService;
 import com.sun.identity.authentication.spi.RedirectCallback;
-import com.sun.identity.shared.Constants;
 
 
 /**
@@ -102,84 +100,14 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
   private static final String BUNDLE = PingOneIdentityProviderHandlerNode.class.getName();
   private static final String ERROR = "ERROR";
 
-  private static final Script DEFAULT_IDM_TRANSFORMATION_SCRIPT;
-  private static final Script DEFAULT_AM_TRANSFORMATION_SCRIPT;
+
 
   private final Config config;
   private TNTPPingOneConfig tntpPingOneConfig;
   private final Handler handler;
-  private final Script transformationScript;
 
-  static {
-    try {
-      // Initialize the default scripts for IDM and AM. These are exactly the same except that they use the appropriate
-      // attributes defined here: https://backstage.forgerock.com/docs/idcloud/latest/identities/user-identity-properties-attributes-reference.html
-      String idmScript = "import static org.forgerock.json.JsonValue.field\n"
-                         + "import static org.forgerock.json.JsonValue.json\n"
-                         + "import static org.forgerock.json.JsonValue.object\n"
-                         + "\n"
-                         + "import org.forgerock.json.JsonValue\n"
-                         + "\n"
-                         + "JsonValue managedUser = json(object(\n"
-                         + "        field(\"userName\", normalizedProfile.username),\n"
-                         + "        field(\"aliasList\", selectedIdp + '-' + normalizedProfile.id.asString())))\n"
-                         + "\n"
-                         + "if (normalizedProfile.email.isNotNull()) managedUser.put(\"mail\", normalizedProfile.email)\n"
-                         + "if (normalizedProfile.phone.isNotNull()) managedUser.put(\"telephoneNumber\", normalizedProfile.phone)\n"
-                         + "if (normalizedProfile.givenName.isNotNull()) managedUser.put(\"givenName\", normalizedProfile.givenName)\n"
-                         + "if (normalizedProfile.familyName.isNotNull()) managedUser.put(\"sn\", normalizedProfile.familyName)\n"
-                         + "if (normalizedProfile.photoUrl.isNotNull()) managedUser.put(\"profileImage\", normalizedProfile.photoUrl)\n"
-                         + "if (normalizedProfile.postalAddress.isNotNull()) managedUser.put(\"postalAddress\", normalizedProfile.postalAddress)\n"
-                         + "if (normalizedProfile.addressLocality.isNotNull()) managedUser.put(\"city\", normalizedProfile.addressLocality)\n"
-                         + "if (normalizedProfile.addressRegion.isNotNull()) managedUser.put(\"stateProvince\", normalizedProfile.addressRegion)\n"
-                         + "if (normalizedProfile.postalCode.isNotNull()) managedUser.put(\"postalCode\", normalizedProfile.postalCode)\n"
-                         + "if (normalizedProfile.country.isNotNull()) managedUser.put(\"country\", normalizedProfile.country)\n"
-                         + "\n"
-                         + "return managedUser";
-      DEFAULT_IDM_TRANSFORMATION_SCRIPT = Script.builder()
-                                                .generateId()
-                                                .setName("Default IDM Transformation Script")
-                                                .setScript(idmScript)
-                                                .setLanguage(ScriptingLanguage.GROOVY)
-                                                .setContext(SOCIAL_IDP_PROFILE_TRANSFORMATION)
-                                                .setEvaluatorVersion(EvaluatorVersion.defaultVersion())
-                                                .build();
 
-      String amScript = "import static org.forgerock.json.JsonValue.field\n"
-                        + "import static org.forgerock.json.JsonValue.json\n"
-                        + "import static org.forgerock.json.JsonValue.object\n"
-                        + "\n"
-                        + "import org.forgerock.json.JsonValue\n"
-                        + "\n"
-                        + "JsonValue identity = json(object(\n"
-                        + "        field(\"userName\", normalizedProfile.username),\n"
-                        + "        field(\"iplanet-am-user-alias-list\", selectedIdp + '-' + normalizedProfile.id.asString())))\n"
-                        + "\n"
-                        + "if (normalizedProfile.email.isNotNull()) identity.put(\"mail\", normalizedProfile.email)\n"
-                        + "if (normalizedProfile.phone.isNotNull()) identity.put(\"telephoneNumber\", normalizedProfile.phone)\n"
-                        + "if (normalizedProfile.givenName.isNotNull()) identity.put(\"givenName\", normalizedProfile.givenName)\n"
-                        + "if (normalizedProfile.familyName.isNotNull()) identity.put(\"sn\", normalizedProfile.familyName)\n"
-                        + "if (normalizedProfile.photoUrl.isNotNull()) identity.put(\"labeledURI\", normalizedProfile.photoUrl)\n"
-                        + "if (normalizedProfile.postalAddress.isNotNull()) identity.put(\"street\", normalizedProfile.postalAddress)\n"
-                        + "if (normalizedProfile.addressLocality.isNotNull()) identity.put(\"l\", normalizedProfile.addressLocality)\n"
-                        + "if (normalizedProfile.addressRegion.isNotNull()) identity.put(\"st\", normalizedProfile.addressRegion)\n"
-                        + "if (normalizedProfile.postalCode.isNotNull()) identity.put(\"postalCode\", normalizedProfile.postalCode)\n"
-                        + "if (normalizedProfile.country.isNotNull()) identity.put(\"co\", normalizedProfile.country)\n"
-                        + "\n"
-                        + "return identity";
-      DEFAULT_AM_TRANSFORMATION_SCRIPT = Script.builder()
-                                               .generateId()
-                                               .setName("Default AM Transformation Script")
-                                               .setScript(amScript)
-                                               .setLanguage(ScriptingLanguage.GROOVY)
-                                               .setContext(SOCIAL_IDP_PROFILE_TRANSFORMATION)
-                                               .setEvaluatorVersion(EvaluatorVersion.defaultVersion())
-                                               .build();
-    } catch (ScriptException e) {
-      // this should never happen
-      throw new RuntimeException("Encountered unexpected error", e);
-    }
-  }
+ 
 
   /**
    * Constructor.
@@ -211,9 +139,9 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
 
     // use the configured transformation script if configured, or one of the defaults otherwise
     if (idmIntegrationService.isEnabled()) {
-      transformationScript = DEFAULT_IDM_TRANSFORMATION_SCRIPT;
+      //transformationScript = DEFAULT_IDM_TRANSFORMATION_SCRIPT;
     } else {
-      transformationScript = DEFAULT_AM_TRANSFORMATION_SCRIPT;
+      //transformationScript = DEFAULT_AM_TRANSFORMATION_SCRIPT;
     }
   }
 
@@ -283,7 +211,7 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
 
   @Override
   protected Script getTransformationScript() {
-    return transformationScript;
+    return null;
   }
 
   private static String getPingOneBaseUrl(TNTPPingOneConfig tntpPingOneConfig) {

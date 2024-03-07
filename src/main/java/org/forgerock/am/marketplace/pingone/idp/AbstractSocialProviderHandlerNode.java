@@ -1,7 +1,9 @@
 /*
- * This code is to be used exclusively in connection with ForgeRock’s software or services. 
- * ForgeRock only offers ForgeRock software or services to legal entities who have entered 
- * into a binding license agreement with ForgeRock. 
+ * This code is to be used exclusively in connection with Ping Identity Corporation software or services. 
+ * Ping Identity Corporation only offers such software or services to legal entities who have entered into 
+ * a binding license agreement with Ping Identity Corporation.
+ *
+ * Copyright 2024 Ping Identity Corporation. All Rights Reserved
  */
 
 package org.forgerock.am.marketplace.pingone.idp;
@@ -17,9 +19,6 @@ import static org.forgerock.oauth.clients.twitter.TwitterClient.OAUTH_VERIFIER;
 import static org.forgerock.openam.auth.node.api.Action.goTo;
 import static org.forgerock.openam.auth.node.api.Action.send;
 import static org.forgerock.openam.auth.node.api.SharedStateConstants.USERNAME;
-import static org.forgerock.openam.auth.nodes.helpers.ScriptedNodeHelper.convertHeadersToModifiableObjects;
-import static org.forgerock.openam.auth.nodes.helpers.ScriptedNodeHelper.convertParametersToModifiableObjects;
-import static org.forgerock.openam.auth.nodes.helpers.ScriptedNodeHelper.getSessionProperties;
 import static org.forgerock.openam.integration.idm.IdmIntegrationService.DEFAULT_IDM_IDENTITY_ATTRIBUTE;
 import static org.forgerock.openam.integration.idm.IdmIntegrationService.IDPS;
 import static org.forgerock.openam.integration.idm.IdmIntegrationService.SELECTED_IDP;
@@ -28,7 +27,6 @@ import static org.forgerock.openam.oauth2.OAuth2Constants.Params.REQUEST;
 import static org.forgerock.openam.oauth2.OAuth2Constants.Params.REQUEST_URI;
 import static org.forgerock.openam.oauth2.OAuth2Constants.Params.STATE;
 import static org.forgerock.openam.social.idp.SocialIdPScriptContext.SOCIAL_IDP_PROFILE_TRANSFORMATION;
-import static org.forgerock.openam.social.idp.SocialIdPScriptContext.SOCIAL_IDP_PROFILE_TRANSFORMATION_NAME;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -75,13 +73,10 @@ import org.forgerock.openam.integration.idm.IdmIntegrationService;
 import org.forgerock.openam.scripting.application.ScriptEvaluator;
 import org.forgerock.openam.scripting.application.ScriptEvaluatorFactory;
 import org.forgerock.openam.scripting.domain.Script;
-import org.forgerock.openam.scripting.domain.ScriptBindings;
 import org.forgerock.openam.scripting.domain.ScriptingLanguage;
 import org.forgerock.openam.social.idp.OAuthClientConfig;
 import org.forgerock.openam.social.idp.OpenIDConnectClientConfig;
 import org.forgerock.openam.social.idp.SocialIdentityProviders;
-import org.forgerock.openam.social.idp.SocialProviderHandlerNodeBindings;
-import org.forgerock.openam.utils.StringUtils;
 import org.forgerock.util.i18n.PreferredLocales;
 import org.mozilla.javascript.NativeJavaObject;
 import org.slf4j.Logger;
@@ -249,6 +244,9 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
         Thread.currentThread().interrupt();
         throw new NodeProcessException(e);
       }
+      catch(Exception e) {
+    	  throw new NodeProcessException(e);
+      }
     }
     return null;
   }
@@ -284,6 +282,9 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
         Thread.currentThread().interrupt();
         throw new NodeProcessException(e);
       }
+      catch(Exception e) {
+    	  throw new NodeProcessException(e);
+      }
     }
     return null;
   }
@@ -308,20 +309,22 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
 
   private Action handleUser(TreeContext context, OAuthClient client,
       OAuthClientConfig idpConfig, String selectedIdp,
-      DataStore dataStore) throws NodeProcessException, OAuthException {
+      DataStore dataStore) throws Exception {
     logger.error("handleUser started, getting userinfo data");
     // Fetch the social profile from the IdP
     UserInfo profile = getUserInfo(client, dataStore);
 
     logger.error("Normalize the social profile using the normalizer transform");
     // Normalize the social profile using the normalizer transform from the client's config
-    JsonValue normalized = evaluateScript(context, idpConfig.transform(), false, profile.getRawProfile());
+    //JsonValue normalized = evaluateScript(context, idpConfig.transform(), false, profile.getRawProfile());
 
     // Transform the normalized profile to object data using the configured script
     // NOTE: changed from original
     //JsonValue objectData = evaluateScript(context, config.script(), true, normalized);
     logger.error("Transform the normalized profile to object data using the configured script");
-    JsonValue objectData = evaluateScript(context, getTransformationScript(), true, normalized);
+    JsonValue objectData = evaluateScript(context, getTransformationScript(), true, profile.getRawProfile());
+
+    //JsonValue objectData = evaluateScript(context, getTransformationScript(), true, normalized);
 
     logger.error("Store the profile in OBJECT_ATTRIBUTES");
     // Store the profile in OBJECT_ATTRIBUTES
@@ -476,38 +479,34 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
     return callback;
   }
 
-  private JsonValue evaluateScript(TreeContext context, Script script,
-      boolean normalized, JsonValue inputData) throws NodeProcessException {
-    ScriptBindings scriptBindings = SocialProviderHandlerNodeBindings.builder()
-        .withSelectedIDP(context.sharedState.get(SELECTED_IDP).asString())
-        .withInputData(inputData, normalized)
-        .withCallbacks(context.getAllCallbacks())
-        .withQueryParameters(convertParametersToModifiableObjects(context.request.parameters))
-        .withNodeState(context.getStateFor(this))
-        .withHeaders(convertHeadersToModifiableObjects(context.request.headers))
-        .withRealm(realm.asPath())
-        .withExistingSession(!StringUtils.isEmpty(context.request.ssoTokenId)
-            ? getSessionProperties(sessionServiceProvider.get(), context.request.ssoTokenId)
-            : null)
-        .withSharedState(context.sharedState.getObject())
-        .withTransientState(context.transientState.getObject())
-        .withLoggerReference(String.format("scripts.%s.%s.(%s)", SOCIAL_IDP_PROFILE_TRANSFORMATION_NAME,
-            script.getId(), script.getName()))
-        .withScriptName(script.getName())
-        .build();
+	private JsonValue evaluateScript(TreeContext context, Script script, boolean normalized, JsonValue inputData)
+			throws Exception {
+		JsonValue returnVal = json(object());
 
-    Bindings binding = scriptBindings.convert(script.getEvaluatorVersion());
+		JsonValue sub = inputData.get("sub");
+		String theSubject = "";
+		if (sub.isString()) {
+			theSubject = sub.asString();
+		} else
+			theSubject = sub.toString();
 
-    try {
-      JsonValue output = evaluateScript(script, binding);
-      logger.error("script {} \n binding {}", script, binding);
+		//TODO Peter - we need to transform this for IdM vs AM
+		
+		returnVal.add("userName", theSubject);
+		returnVal.add("iplanet-am-user-alias-list", "PingOneIdentityProviderHandlerNode-" + theSubject);
+		returnVal.add("mail", inputData.get("email"));
+		returnVal.add("telephoneNumber", inputData.get("phone_number"));
+		returnVal.add("givenName", inputData.get("given_name"));
+		returnVal.add("sn", inputData.get("family_name"));
+		// returnVal.add("street", inputData.get("email"));
+		// returnVal.add("l", inputData.get("email"));
+		// returnVal.add("st", inputData.get("email"));
+		// returnVal.add("postalCode", inputData.get("email"));
+		// returnVal.add("co", inputData.get("email"));
 
-      return output;
-    } catch (javax.script.ScriptException e) {
-      logger.warn("Error evaluating the script", e);
-      throw new NodeProcessException(e);
-    }
-  }
+		return returnVal;
+
+	}
 
   private JsonValue evaluateScript(Script script, Bindings binding) throws javax.script.ScriptException {
     if (script.getLanguage().equals(ScriptingLanguage.JAVASCRIPT)) {

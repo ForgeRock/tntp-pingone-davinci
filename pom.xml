@@ -13,7 +13,7 @@
     <artifactId>pingone</artifactId>
 
     <groupId>org.forgerock.am.marketplace</groupId>
-    <version>0.0.16</version>
+    <version>0.0.34</version>
     <name>PingOne</name>
     <description>PingOne Nodes - DaVinci and Federation</description>
 
@@ -104,9 +104,9 @@
         <dependency>
             <groupId>org.forgerock.openam.auth.service.marketplace</groupId>
             <artifactId>TNTPPingOneService</artifactId>
-            <version>0.0.10</version>
+            <version>0.0.20</version>
             <scope>system</scope>
-            <systemPath>/Users/peterholko/forgerock/TNTPPingOneService-0.0.10.jar</systemPath>
+            <systemPath>/Users/justin.chin/eclipse/eclipse-workspace/tntp-ping-service-final/TNTPPingOneService/target/TNTPPingOneService-0.0.20.jar</systemPath>
         </dependency>
     </dependencies>
 
