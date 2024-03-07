@@ -220,29 +220,29 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
   @Override
   public Action process(TreeContext context) {
     try {
-      logger.debug(loggerPrefix + "Started");
+      logger.error(loggerPrefix + "Started");
       context.getStateFor(this).putShared(IdmIntegrationService.SELECTED_IDP, PingOneIdentityProviders.PING_ONE_IDP_NAME);
-      logger.debug(loggerPrefix + "Calling super process");
+      logger.error(loggerPrefix + "Calling super process");
       Action action = super.process(context);
       for (Callback callback : action.callbacks)
       {
-        logger.debug(loggerPrefix + "Checking if callback is redirectCallback");
+        logger.error(loggerPrefix + "Checking if callback is redirectCallback");
         if (callback instanceof RedirectCallback)
         {
-          logger.debug(loggerPrefix + "Sending PAR request");
+          logger.error(loggerPrefix + "Sending PAR request");
           // send PAR request
           RedirectCallback redirectCallback = (RedirectCallback) callback;
           String redirectUrl = redirectCallback.getRedirectUrl();
           String parRequestUri;
           parRequestUri = sendParRequest(context, redirectUrl).getOrThrow();
 
-          logger.debug(loggerPrefix + "Setting the PAR request URI");
+          logger.error(loggerPrefix + "Setting the PAR request URI");
           // update the RedirectCallback to include PAR URI
           String parRedirectUrl = redirectUrl + "&request_uri=" + parRequestUri;
           redirectCallback.setRedirectUrl(parRedirectUrl);
         }
       }
-      logger.debug(loggerPrefix + "Process end");
+      logger.error(loggerPrefix + "Process end");
       return action;
     }
     catch (Exception ex) {

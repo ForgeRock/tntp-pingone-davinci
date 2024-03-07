@@ -166,30 +166,30 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
 
   @Override
   public Action process(TreeContext context) throws NodeProcessException {
-    logger.debug("Social provider redirect node started");
+    logger.error("Social provider redirect node started");
 
     if (!context.sharedState.isDefined(SELECTED_IDP)) {
-      logger.debug(SELECTED_IDP + " is missing in the state");
+      logger.error(SELECTED_IDP + " is missing in the state");
       throw new NodeProcessException(SELECTED_IDP + " not found in state");
     }
     final String selectedIdp = context.sharedState.get(SELECTED_IDP).asString();
-    logger.debug("Getting provider");
+    logger.error("Getting provider");
     final OAuthClientConfig idpConfig = Optional.ofNullable(providerConfigStore.getProviders(realm)
             .get(selectedIdp))
         .orElseThrow(() -> new NodeProcessException("Selected provider does not exist."));
-    logger.debug("Creating new OAuth client");
+    logger.error("Creating new OAuth client");
     final OAuthClient client = authModuleHelper.newOAuthClient(realm, idpConfig);
-    logger.debug("Getting datastore");
+    logger.error("Getting datastore");
     final DataStore dataStore = SharedStateAdaptor.toDatastore(json(context.sharedState));
 
-    logger.debug("Handling callback");
+    logger.error("Handling callback");
     Action action = handleCallback(context, selectedIdp, idpConfig, client, dataStore);
     if (action != null) {
-      logger.debug("Action is not null, returning action");
+      logger.error("Action is not null, returning action");
       return action;
     }
 
-    logger.debug("Checking if request object should be passed.");
+    logger.error("Checking if request object should be passed.");
     if (authModuleHelper.shouldPassRequestObject(idpConfig)) {
       authModuleHelper.passRequestObject(context.request.servletRequest, realm,
           (OpenIDConnectClientConfig) idpConfig, dataStore);
@@ -200,7 +200,7 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
 //      logger.debug("Sending Social Login callback");
 //      return send(prepareIdPCallback(idpConfig, dataStore)).build();
 //    }
-    logger.debug("Sending redirect callback");
+    logger.error("Sending redirect callback");
     return send(prepareRedirectCallback(client, dataStore)).build();
   }
 
@@ -257,7 +257,7 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
       OAuthClientConfig idpConfig, String selectedIdp,
       DataStore dataStore) throws NodeProcessException {
 
-    logger.debug("Checking if OAuth parameters are present");
+    logger.error("Checking if OAuth parameters are present");
     if (isAllRequiredParametersPresent(client, context.request.parameters)) {
 
       final HashMap<String, List<String>> parameters = new HashMap<>();
@@ -271,9 +271,9 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
       parameters.put(AppleClient.USER, context.request.parameters.get(AppleClient.USER));
 
       try {
-        logger.debug("Handling post authentication");
+        logger.error("Handling post authentication");
         client.handlePostAuth(dataStore, parameters).getOrThrow();
-        logger.debug("Social provider redirect node completed");
+        logger.error("Social provider redirect node completed");
 
         return handleUser(context, client, idpConfig, selectedIdp, dataStore);
 
@@ -294,9 +294,9 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
       return parameters.containsKey(OAUTH_TOKEN) && parameters.containsKey(OAUTH_VERIFIER);
     } else {
       if (parameters.containsKey(CODE)) {
-        logger.debug("User agent returned from social authorization server with a code parameter");
+        logger.error("User agent returned from social authorization server with a code parameter");
         if (!parameters.containsKey(STATE)) {
-          logger.debug("Request contained a code parameter but did not include a state parameter");
+          logger.error("Request contained a code parameter but did not include a state parameter");
           throw new NodeProcessException("Not having the state could mean that this request did not come from"
               + " the IDP");
         }
@@ -309,21 +309,21 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
   private Action handleUser(TreeContext context, OAuthClient client,
       OAuthClientConfig idpConfig, String selectedIdp,
       DataStore dataStore) throws NodeProcessException, OAuthException {
-    logger.debug("handleUser started, getting userinfo data");
+    logger.error("handleUser started, getting userinfo data");
     // Fetch the social profile from the IdP
     UserInfo profile = getUserInfo(client, dataStore);
 
-    logger.debug("Normalize the social profile using the normalizer transform");
+    logger.error("Normalize the social profile using the normalizer transform");
     // Normalize the social profile using the normalizer transform from the client's config
     JsonValue normalized = evaluateScript(context, idpConfig.transform(), false, profile.getRawProfile());
 
     // Transform the normalized profile to object data using the configured script
     // NOTE: changed from original
     //JsonValue objectData = evaluateScript(context, config.script(), true, normalized);
-    logger.debug("Transform the normalized profile to object data using the configured script");
+    logger.error("Transform the normalized profile to object data using the configured script");
     JsonValue objectData = evaluateScript(context, getTransformationScript(), true, normalized);
 
-    logger.debug("Store the profile in OBJECT_ATTRIBUTES");
+    logger.error("Store the profile in OBJECT_ATTRIBUTES");
     // Store the profile in OBJECT_ATTRIBUTES
     for (Map.Entry<String, Object> entry : objectData.asMap().entrySet()) {
       if (!entry.getKey().equals(config.usernameAttribute())) {
@@ -332,30 +332,30 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
       }
     }
 
-    logger.debug("Record the social identity subject in the profile");
+    logger.error("Record the social identity subject in the profile");
     // Record the social identity subject in the profile, too
     String identity = selectedIdp + "-" + profile.getSubject();
 
-    logger.debug("Getting contextId");
+    logger.error("Getting contextId");
     Optional<String> contextId = idmIntegrationService.getAttributeFromContext(context,
             config.usernameAttribute())
         .map(JsonValue::asString);
 
-    logger.debug("Getting user");
+    logger.error("Getting user");
     Optional<JsonValue> user = getUser(context, identity);
 
     String resolvedId;
     if (contextId.isPresent()) {
-      logger.debug("contextId is present");
+      logger.error("contextId is present");
       if (user.isPresent()
           && !contextId.get().equals(user.get().get(config.usernameAttribute()).asString())) {
-        logger.debug("Account does not belong to user in share state.");
+        logger.error("Account does not belong to user in share state.");
         throw new NodeProcessException("Account does not belong to user in share state.");
       }
-      logger.debug("Setting resolvedId to contextId");
+      logger.error("Setting resolvedId to contextId");
       resolvedId = contextId.get();
     } else {
-      logger.debug("contextId is not available, setting resolveId to username attribute from user or objectData");
+      logger.error("contextId is not available, setting resolveId to username attribute from user or objectData");
       resolvedId = user.isPresent()
           ? user.get().get(config.usernameAttribute()).asString()
           : objectData.get(config.usernameAttribute()).asString();
@@ -363,10 +363,10 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
           resolvedId);
     }
 
-    logger.debug("resolveId is: " + resolvedId);
+    logger.error("resolveId is: " + resolvedId);
 
     if (resolvedId != null) {
-      logger.debug("Setting username to resolvedId");
+      logger.error("Setting username to resolvedId");
       context.sharedState.put(USERNAME, resolvedId);
     }
 
@@ -376,12 +376,12 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
           getAliasList(context, identity, user, contextId));
     }
 
-    logger.debug("Getting universalId");
+    logger.error("Getting universalId");
     Optional<String> universalId = identityService.getUniversalId(resolvedId, realm.asPath(), IdType.USER);
 
-    logger.debug("universalId is: " + universalId);
+    logger.error("universalId is: " + universalId);
     if(user.isPresent()) {
-      logger.debug("user is present, returning account exists");
+      logger.error("user is present, returning account exists");
       return goTo(SocialAuthOutcome.ACCOUNT_EXISTS.name())
           .withUniversalId(universalId)
           .replaceSharedState(context.sharedState.copy())
@@ -390,7 +390,7 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
           .build();
     } else {
       if(universalId.isPresent()) {
-        logger.debug("universalId is present, returning account exists but no link");
+        logger.error("universalId is present, returning account exists but no link");
         return goTo(SocialAuthOutcome.ACCOUNT_EXISTS_NO_LINK.name())
             .withUniversalId(universalId)
             .replaceSharedState(context.sharedState.copy())
@@ -398,7 +398,7 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
                 .putPermissive(ptr(SOCIAL_OAUTH_DATA).child(selectedIdp), dataStore.retrieveData()))
             .build();
       } else {
-        logger.debug("Returning no account found");
+        logger.error("Returning no account found");
         return goTo(SocialAuthOutcome.NO_ACCOUNT.name())
             .withUniversalId(universalId)
             .replaceSharedState(context.sharedState.copy())
@@ -430,10 +430,10 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
     try {
       return client.getUserInfo(dataStore).getOrThrow();
     } catch (OAuthException e) {
-      logger.debug("Failed to retrieve social profile data", e);
+      logger.error("Failed to retrieve social profile data", e);
       throw new NodeProcessException("Failed to retrieve social profile data", e);
     } catch (InterruptedException e) {
-      logger.debug("Interrupted while retrieving social profile data");
+      logger.error("Interrupted while retrieving social profile data");
       Thread.currentThread().interrupt();
       throw new NodeProcessException("Process interrupted", e);
     }
@@ -500,7 +500,7 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
 
     try {
       JsonValue output = evaluateScript(script, binding);
-      logger.debug("script {} \n binding {}", script, binding);
+      logger.error("script {} \n binding {}", script, binding);
 
       return output;
     } catch (javax.script.ScriptException e) {
