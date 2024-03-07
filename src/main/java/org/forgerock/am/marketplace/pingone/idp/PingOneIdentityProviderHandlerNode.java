@@ -218,39 +218,40 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
   }
 
   @Override
-  public Action process(TreeContext context) throws NodeProcessException {
-    context.getStateFor(this).putShared(IdmIntegrationService.SELECTED_IDP, PingOneIdentityProviders.PING_ONE_IDP_NAME);
-    Action action = super.process(context);
-    for (Callback callback : action.callbacks) {
-      if (callback instanceof RedirectCallback) {
-        // send PAR request
-        RedirectCallback redirectCallback = (RedirectCallback) callback;
-        String redirectUrl = redirectCallback.getRedirectUrl();
-        String parRequestUri;
-        try {
+  public Action process(TreeContext context) {
+    try {
+      logger.debug(loggerPrefix + "Started");
+      context.getStateFor(this).putShared(IdmIntegrationService.SELECTED_IDP, PingOneIdentityProviders.PING_ONE_IDP_NAME);
+      logger.debug(loggerPrefix + "Calling super process");
+      Action action = super.process(context);
+      for (Callback callback : action.callbacks)
+      {
+        logger.debug(loggerPrefix + "Checking if callback is redirectCallback");
+        if (callback instanceof RedirectCallback)
+        {
+          logger.debug(loggerPrefix + "Sending PAR request");
+          // send PAR request
+          RedirectCallback redirectCallback = (RedirectCallback) callback;
+          String redirectUrl = redirectCallback.getRedirectUrl();
+          String parRequestUri;
           parRequestUri = sendParRequest(context, redirectUrl).getOrThrow();
-        } catch (OAuthException ex) {
-          logger.debug("Failed to send PAR request", ex);
-          String stackTrace = org.apache.commons.lang.exception.ExceptionUtils.getStackTrace(ex);
-          logger.error(loggerPrefix + "Exception occurred: " + stackTrace);
-          context.getStateFor(this).putTransient(loggerPrefix + "Exception", new Date() + ": " + ex.getMessage());
-          context.getStateFor(this).putTransient(loggerPrefix + "StackTrace", new Date() + ": " + stackTrace);
-          return Action.goTo(ERROR).withHeader("Error occurred").withErrorMessage(ex.getMessage()).build();
-        } catch (InterruptedException ex) {
-          logger.debug("Interrupted while sending PAR request");
-          Thread.currentThread().interrupt();
-          String stackTrace = org.apache.commons.lang.exception.ExceptionUtils.getStackTrace(ex);
-          logger.error(loggerPrefix + "Exception occurred: " + stackTrace);
-          context.getStateFor(this).putTransient(loggerPrefix + "Exception", new Date() + ": " + ex.getMessage());
-          context.getStateFor(this).putTransient(loggerPrefix + "StackTrace", new Date() + ": " + stackTrace);
-          return Action.goTo(ERROR).withHeader("Error occurred").withErrorMessage(ex.getMessage()).build();
+
+          logger.debug(loggerPrefix + "Setting the PAR request URI");
+          // update the RedirectCallback to include PAR URI
+          String parRedirectUrl = redirectUrl + "&request_uri=" + parRequestUri;
+          redirectCallback.setRedirectUrl(parRedirectUrl);
         }
-        // update the RedirectCallback to include PAR URI
-        String parRedirectUrl = redirectUrl + "&request_uri=" + parRequestUri;
-        redirectCallback.setRedirectUrl(parRedirectUrl);
       }
+      logger.debug(loggerPrefix + "Process end");
+      return action;
     }
-    return action;
+    catch (Exception ex) {
+      String stackTrace = org.apache.commons.lang.exception.ExceptionUtils.getStackTrace(ex);
+      logger.error(loggerPrefix + "Exception occurred: " + stackTrace);
+      context.getStateFor(this).putShared(loggerPrefix + "Exception", ex.getMessage());
+      context.getStateFor(this).putShared(loggerPrefix + "StackTrace", stackTrace);
+      return Action.goTo(ERROR).build();
+    }
   }
 
   @Override
