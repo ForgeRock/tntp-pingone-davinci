@@ -13,7 +13,7 @@
     <artifactId>pingone</artifactId>
 
     <groupId>org.forgerock.am.marketplace</groupId>
-    <version>0.0.34</version>
+    <version>0.0.37</version>
     <name>PingOne</name>
     <description>PingOne Nodes - DaVinci and Federation</description>
 

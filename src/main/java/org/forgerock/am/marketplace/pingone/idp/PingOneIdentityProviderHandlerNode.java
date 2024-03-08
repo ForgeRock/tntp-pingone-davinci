@@ -100,14 +100,9 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
   private static final String BUNDLE = PingOneIdentityProviderHandlerNode.class.getName();
   private static final String ERROR = "ERROR";
 
-
-
   private final Config config;
   private TNTPPingOneConfig tntpPingOneConfig;
   private final Handler handler;
-
-
- 
 
   /**
    * Constructor.
@@ -136,13 +131,6 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
     this.config = config;
     this.handler = handler;
     this.tntpPingOneConfig = TNTPPingOneConfigChoiceValues.getTNTPPingOneConfig(config.tntpPingOneConfigName());
-
-    // use the configured transformation script if configured, or one of the defaults otherwise
-    if (idmIntegrationService.isEnabled()) {
-      //transformationScript = DEFAULT_IDM_TRANSFORMATION_SCRIPT;
-    } else {
-      //transformationScript = DEFAULT_AM_TRANSFORMATION_SCRIPT;
-    }
   }
 
   @Override
@@ -209,10 +197,10 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
     }
   }
 
-  @Override
+  /*@Override
   protected Script getTransformationScript() {
     return null;
-  }
+  }*/
 
   private static String getPingOneBaseUrl(TNTPPingOneConfig tntpPingOneConfig) {
     return "https://auth.pingone" + tntpPingOneConfig.environmentRegion().getDomainSuffix() + "/" + tntpPingOneConfig.environmentId() + "/as";

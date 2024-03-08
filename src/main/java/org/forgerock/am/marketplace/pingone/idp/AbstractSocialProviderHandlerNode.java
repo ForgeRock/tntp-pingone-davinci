@@ -23,8 +23,6 @@ import static org.forgerock.openam.integration.idm.IdmIntegrationService.DEFAULT
 import static org.forgerock.openam.integration.idm.IdmIntegrationService.IDPS;
 import static org.forgerock.openam.integration.idm.IdmIntegrationService.SELECTED_IDP;
 import static org.forgerock.openam.oauth2.OAuth2Constants.Params.CODE;
-import static org.forgerock.openam.oauth2.OAuth2Constants.Params.REQUEST;
-import static org.forgerock.openam.oauth2.OAuth2Constants.Params.REQUEST_URI;
 import static org.forgerock.openam.oauth2.OAuth2Constants.Params.STATE;
 import static org.forgerock.openam.social.idp.SocialIdPScriptContext.SOCIAL_IDP_PROFILE_TRANSFORMATION;
 
@@ -36,12 +34,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.ResourceBundle;
 import java.util.Set;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
-import javax.script.Bindings;
 import javax.security.auth.callback.Callback;
 
 import org.forgerock.am.identity.application.LegacyIdentityService;
@@ -52,8 +48,6 @@ import org.forgerock.oauth.OAuthClient;
 import org.forgerock.oauth.OAuthException;
 import org.forgerock.oauth.UserInfo;
 import org.forgerock.oauth.clients.apple.AppleClient;
-import org.forgerock.oauth.clients.oauth2.OAuth2Client;
-import org.forgerock.oauth.clients.oidc.OpenIDConnectClient;
 import org.forgerock.oauth.clients.twitter.TwitterClient;
 import org.forgerock.openam.annotations.sm.Attribute;
 import org.forgerock.openam.auth.node.api.Action;
@@ -61,31 +55,24 @@ import org.forgerock.openam.auth.node.api.InputState;
 import org.forgerock.openam.auth.node.api.Node;
 import org.forgerock.openam.auth.node.api.NodeProcessException;
 import org.forgerock.openam.auth.node.api.OutputState;
-import org.forgerock.openam.auth.node.api.StaticOutcomeProvider;
 import org.forgerock.openam.auth.node.api.TreeContext;
 import org.forgerock.openam.auth.nodes.helpers.IdmIntegrationHelper;
 import org.forgerock.openam.auth.nodes.oauth.SharedStateAdaptor;
 import org.forgerock.openam.auth.nodes.oauth.SocialOAuth2Helper;
-import org.forgerock.openam.authentication.callbacks.IdPCallback;
 import org.forgerock.openam.authentication.modules.common.mapping.DefaultAccountProvider;
 import org.forgerock.openam.core.realms.Realm;
 import org.forgerock.openam.integration.idm.IdmIntegrationService;
 import org.forgerock.openam.scripting.application.ScriptEvaluator;
 import org.forgerock.openam.scripting.application.ScriptEvaluatorFactory;
-import org.forgerock.openam.scripting.domain.Script;
-import org.forgerock.openam.scripting.domain.ScriptingLanguage;
 import org.forgerock.openam.social.idp.OAuthClientConfig;
 import org.forgerock.openam.social.idp.OpenIDConnectClientConfig;
 import org.forgerock.openam.social.idp.SocialIdentityProviders;
-import org.forgerock.util.i18n.PreferredLocales;
-import org.mozilla.javascript.NativeJavaObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.google.common.collect.ImmutableList;
 import com.google.inject.assistedinject.Assisted;
 import com.iplanet.dpro.session.service.SessionService;
 import com.sun.identity.authentication.service.AuthD;
@@ -190,65 +177,14 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
           (OpenIDConnectClientConfig) idpConfig, dataStore);
     }
 
-    // NOTE: changed from original
-//    if (config.clientType() == NATIVE) {
-//      logger.debug("Sending Social Login callback");
-//      return send(prepareIdPCallback(idpConfig, dataStore)).build();
-//    }
     logger.error("Sending redirect callback");
     return send(prepareRedirectCallback(client, dataStore)).build();
   }
 
   private Action handleCallback(TreeContext context, String selectedIdp, OAuthClientConfig idpConfig,
       OAuthClient client, DataStore dataStore) throws NodeProcessException {
-    // NOTE: changed from original
-//    if (config.clientType() == NATIVE) {
-//      //Handle IdPCallback
-//      return handleIdPCallback(context, client, idpConfig, selectedIdp, dataStore);
-//    }
     //Handle redirect from idp.
     return handleRedirect(context, client, idpConfig, selectedIdp, dataStore);
-  }
-
-  private Action handleIdPCallback(TreeContext context, OAuthClient client,
-      OAuthClientConfig idpConfig, String selectedIdp,
-      DataStore dataStore) throws NodeProcessException {
-
-    Optional<IdPCallback> opt = context.getCallback(IdPCallback.class);
-    if (opt.isPresent()) {
-      IdPCallback callback = opt.get();
-      final HashMap<String, List<String>> parameters = new HashMap<>();
-
-      parameters.put(OAuth2Client.TOKEN_TYPE, Collections.singletonList(callback.getTokenType()));
-      if (callback.getToken().equals(FORM_POST_ENTRY)) {
-        // During non iOS app flows Apple sends the user info as request parameter along
-        // with authorization code, we read it here and set it on the parameters where
-        // the commons Apple client expects to find it.
-        parameters.put(AppleClient.USER, context.request.parameters.get(AppleClient.USER));
-        parameters.put(callback.getTokenType(), context.request.parameters.remove(CODE));
-      } else {
-        // During the native iOS app flow Apple native SDK receives the user info along with the ID Token
-        // and SDK sends it to AM as part of callback. Here we read it from the callback and set it on the
-        // parameters where the commons Apple client expects to find it.
-        parameters.put(AppleClient.USER, Collections.singletonList(callback.getUserInfo()));
-        parameters.put(callback.getTokenType(), Collections.singletonList(callback.getToken()));
-      }
-
-      try {
-        client.handleNativePostAuth(null, dataStore, parameters).getOrThrow();
-        return handleUser(context, client, idpConfig, selectedIdp, dataStore);
-      } catch (OAuthException e) {
-        logger.error("Failed to handle native post auth", e);
-        throw new NodeProcessException(e);
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        throw new NodeProcessException(e);
-      }
-      catch(Exception e) {
-    	  throw new NodeProcessException(e);
-      }
-    }
-    return null;
   }
 
   private Action handleRedirect(TreeContext context, OAuthClient client,
@@ -314,18 +250,8 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
     // Fetch the social profile from the IdP
     UserInfo profile = getUserInfo(client, dataStore);
 
-    logger.error("Normalize the social profile using the normalizer transform");
-    // Normalize the social profile using the normalizer transform from the client's config
-    //JsonValue normalized = evaluateScript(context, idpConfig.transform(), false, profile.getRawProfile());
-
-    // Transform the normalized profile to object data using the configured script
-    // NOTE: changed from original
-    //JsonValue objectData = evaluateScript(context, config.script(), true, normalized);
-    logger.error("Transform the normalized profile to object data using the configured script");
-    JsonValue objectData = evaluateScript(context, getTransformationScript(), true, profile.getRawProfile());
-
-    //JsonValue objectData = evaluateScript(context, getTransformationScript(), true, normalized);
-
+    logger.error("Normalize claims for AM or IDM");
+    JsonValue objectData = normalizeClaims(idmIntegrationService.isEnabled(), selectedIdp, profile.getRawProfile());
     logger.error("Store the profile in OBJECT_ATTRIBUTES");
     // Store the profile in OBJECT_ATTRIBUTES
     for (Map.Entry<String, Object> entry : objectData.asMap().entrySet()) {
@@ -442,6 +368,40 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
     }
   }
 
+  private JsonValue normalizeClaims(boolean isIdmEnabled, String selectedIdp, JsonValue inputClaims) {
+    JsonValue returnVal = json(object());
+    JsonValue sub = inputClaims.get("sub");
+
+    String theSubject = "";
+    if (sub.isString()) {
+      theSubject = sub.asString();
+    } else
+      theSubject = sub.toString();
+
+    returnVal.add("userName", theSubject);
+
+    if(isIdmEnabled) {
+      returnVal.add(ALIAS_LIST, selectedIdp + theSubject);
+    } else {
+      returnVal.add(AM_USER_ALIAS_LIST_ATTRIBUTE_NAME, selectedIdp + theSubject);
+    }
+
+    logger.error(inputClaims.get("address").toString());
+    logger.error(inputClaims.get("address").get("street_address").toString());
+
+    returnVal.add("mail", inputClaims.get("email"));
+    returnVal.add("telephoneNumber", inputClaims.get("phone_number"));
+    returnVal.add("givenName", inputClaims.get("given_name"));
+    returnVal.add("sn", inputClaims.get("family_name"));
+    returnVal.add("street", inputClaims.get("address").get("street_address"));
+    returnVal.add("l", inputClaims.get("address").get("locality"));
+    returnVal.add("st", inputClaims.get("address").get("region"));
+    returnVal.add("postalCode", inputClaims.get("address").get("postal_code"));
+    returnVal.add("co", inputClaims.get("address").get("country"));
+
+    return returnVal;
+  }
+
   private Callback prepareRedirectCallback(OAuthClient client,
       DataStore dataStore)
       throws NodeProcessException {
@@ -459,62 +419,6 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
     }
 
     return redirectCallback;
-  }
-
-  private Callback prepareIdPCallback(OAuthClientConfig idpConfig, DataStore dataStore)
-      throws NodeProcessException {
-
-    IdPCallback callback = MAPPER.convertValue(idpConfig, IdPCallback.class);
-    authModuleHelper.createNonce(idpConfig, dataStore);
-    //populate other parameters if exists in the dataStore
-    try {
-      callback.setRequest(dataStore.retrieveData().get(REQUEST).asString());
-      if (dataStore.retrieveData().isDefined(REQUEST_URI)) {
-        callback.setRequestUri(dataStore.retrieveData().get(REQUEST_URI).toString());
-      }
-      callback.setNonce(dataStore.retrieveData().get(OpenIDConnectClient.NONCE).asString());
-    } catch (OAuthException e) {
-      throw new NodeProcessException(e);
-    }
-    return callback;
-  }
-
-	private JsonValue evaluateScript(TreeContext context, Script script, boolean normalized, JsonValue inputData)
-			throws Exception {
-		JsonValue returnVal = json(object());
-
-		JsonValue sub = inputData.get("sub");
-		String theSubject = "";
-		if (sub.isString()) {
-			theSubject = sub.asString();
-		} else
-			theSubject = sub.toString();
-
-		//TODO Peter - we need to transform this for IdM vs AM
-		
-		returnVal.add("userName", theSubject);
-		returnVal.add("iplanet-am-user-alias-list", "PingOneIdentityProviderHandlerNode-" + theSubject);
-		returnVal.add("mail", inputData.get("email"));
-		returnVal.add("telephoneNumber", inputData.get("phone_number"));
-		returnVal.add("givenName", inputData.get("given_name"));
-		returnVal.add("sn", inputData.get("family_name"));
-		// returnVal.add("street", inputData.get("email"));
-		// returnVal.add("l", inputData.get("email"));
-		// returnVal.add("st", inputData.get("email"));
-		// returnVal.add("postalCode", inputData.get("email"));
-		// returnVal.add("co", inputData.get("email"));
-
-		return returnVal;
-
-	}
-
-  private JsonValue evaluateScript(Script script, Bindings binding) throws javax.script.ScriptException {
-    if (script.getLanguage().equals(ScriptingLanguage.JAVASCRIPT)) {
-      NativeJavaObject result = scriptEvaluator.evaluateScript(script, binding, realm);
-      return (JsonValue) result.unwrap();
-    } else {
-      return scriptEvaluator.evaluateScript(script, binding, realm);
-    }
   }
 
   private List<String> getAliasList(TreeContext context, String identity, Optional<JsonValue> user,
@@ -559,12 +463,10 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
     };
   }
 
-  // NOTE: changed from original
-
   /**
    * Returns the transformation script that is applied to transform a normalized social profile to object data.
    */
-  protected abstract Script getTransformationScript();
+  //protected abstract Script getTransformationScript();
 
   /**
    * The possible outcomes for the SocialProviderHandlerNode.
@@ -589,17 +491,6 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
    * Configuration holder for the node.
    */
   public interface Config {
-    // NOTE: changed from original
-//    /**
-//     * The script configuration for transforming the normalized social profile to OBJECT_ATTRIBUTES data in
-//     * the shared state.
-//     *
-//     * @return The script configuration
-//     */
-//    @Attribute(order = 100, validators = {RequiredValueValidator.class})
-//    @ScriptContext(SOCIAL_IDP_PROFILE_TRANSFORMATION_NAME)
-//    Script script();
-
     /**
      * The attribute in which username may be found.
      *
@@ -608,37 +499,6 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
     @Attribute(order = 300, validators = {RequiredValueValidator.class})
     default String usernameAttribute() {
       return DEFAULT_IDM_IDENTITY_ATTRIBUTE;
-    }
-
-    // NOTE: changed from original
-    // This is only supports for a small set of IDPs, so it is being commented out until P1 is supported in the SDK.
-//    /**
-//     * The client type used to authenticate with the identity provider.
-//     * Default to {@link ClientType#BROWSER}
-//     *
-//     * @return The client type
-//     */
-//    @Attribute(order = 400)
-//    default ClientType clientType() {
-//      return ClientType.BROWSER;
-//    }
-  }
-
-  /**
-   * Defines the possible outcomes from this node.
-   */
-  public static class SocialAuthOutcomeProvider implements StaticOutcomeProvider {
-    @Override
-    public List<Outcome> getOutcomes(PreferredLocales locales) {
-      ResourceBundle bundle = locales.getBundleInPreferredLocale(BUNDLE,
-          SocialAuthOutcomeProvider.class.getClassLoader());
-      return ImmutableList.of(
-          new Outcome(SocialAuthOutcome.ACCOUNT_EXISTS.name(),
-              bundle.getString("accountExistsOutcome")),
-          new Outcome(SocialAuthOutcome.ACCOUNT_EXISTS_NO_LINK.name(),
-                      bundle.getString("accountExistsNoLinkOutcome")),
-          new Outcome(SocialAuthOutcome.NO_ACCOUNT.name(),
-              bundle.getString("noAccountOutcome")));
     }
   }
 }
