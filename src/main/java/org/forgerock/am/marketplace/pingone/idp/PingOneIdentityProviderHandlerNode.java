@@ -91,7 +91,7 @@ import com.sun.identity.authentication.spi.RedirectCallback;
  */
 @Node.Metadata(outcomeProvider = PingOneIdentityProviderHandlerNode.OutcomeProvider.class,
                configClass = PingOneIdentityProviderHandlerNode.Config.class,
-               tags = {"social", "federation", "platform"})
+               tags = { "marketplace", "trustnetwork" })
 public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHandlerNode {
 
   private static final Logger logger = LoggerFactory.getLogger(PingOneIdentityProviderHandlerNode.class);

@@ -47,7 +47,8 @@ import org.slf4j.LoggerFactory;
  * <a href="https://docs.pingidentity.com/r/en-us/davinci/davinci_api_flow_launch">here</a>.
  */
 @Node.Metadata(outcomeProvider = DaVinciNode.OutcomeProvider.class,
-    configClass = DaVinciNode.Config.class)
+    configClass = DaVinciNode.Config.class,
+    tags = { "marketplace", "trustnetwork" })
 public class DaVinciNode extends AbstractDecisionNode {
 
   private static final Logger logger = LoggerFactory.getLogger(DaVinciNode.class);
