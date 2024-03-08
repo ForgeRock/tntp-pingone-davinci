@@ -108,7 +108,7 @@
             <artifactId>TNTPPingOneService</artifactId>
             <version>0.0.20</version>
             <scope>system</scope>
-            <systemPath>/Users/justin.chin/eclipse/eclipse-workspace/tntp-ping-service-final/TNTPPingOneService/target/TNTPPingOneService-0.0.20.jar</systemPath>
+            <systemPath>/Users/justin.chin/git/tntp-ping-service/target/TNTPPingOneService-0.0.20.jar</systemPath>
         </dependency>
     </dependencies>
 
