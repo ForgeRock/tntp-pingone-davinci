@@ -1,7 +1,9 @@
 /*
- * This code is to be used exclusively in connection with ForgeRock’s software or services. 
- * ForgeRock only offers ForgeRock software or services to legal entities who have entered 
- * into a binding license agreement with ForgeRock. 
+ * This code is to be used exclusively in connection with Ping Identity Corporation software or services. 
+ * Ping Identity Corporation only offers such software or services to legal entities who have entered into 
+ * a binding license agreement with Ping Identity Corporation.
+ *
+ * Copyright 2024 Ping Identity Corporation. All Rights Reserved
  */
 
 package org.forgerock.am.marketplace.pingone.idp;
@@ -17,18 +19,12 @@ import static org.forgerock.oauth.clients.twitter.TwitterClient.OAUTH_VERIFIER;
 import static org.forgerock.openam.auth.node.api.Action.goTo;
 import static org.forgerock.openam.auth.node.api.Action.send;
 import static org.forgerock.openam.auth.node.api.SharedStateConstants.USERNAME;
-import static org.forgerock.openam.auth.nodes.helpers.ScriptedNodeHelper.convertHeadersToModifiableObjects;
-import static org.forgerock.openam.auth.nodes.helpers.ScriptedNodeHelper.convertParametersToModifiableObjects;
-import static org.forgerock.openam.auth.nodes.helpers.ScriptedNodeHelper.getSessionProperties;
 import static org.forgerock.openam.integration.idm.IdmIntegrationService.DEFAULT_IDM_IDENTITY_ATTRIBUTE;
 import static org.forgerock.openam.integration.idm.IdmIntegrationService.IDPS;
 import static org.forgerock.openam.integration.idm.IdmIntegrationService.SELECTED_IDP;
 import static org.forgerock.openam.oauth2.OAuth2Constants.Params.CODE;
-import static org.forgerock.openam.oauth2.OAuth2Constants.Params.REQUEST;
-import static org.forgerock.openam.oauth2.OAuth2Constants.Params.REQUEST_URI;
 import static org.forgerock.openam.oauth2.OAuth2Constants.Params.STATE;
 import static org.forgerock.openam.social.idp.SocialIdPScriptContext.SOCIAL_IDP_PROFILE_TRANSFORMATION;
-import static org.forgerock.openam.social.idp.SocialIdPScriptContext.SOCIAL_IDP_PROFILE_TRANSFORMATION_NAME;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -38,12 +34,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.ResourceBundle;
 import java.util.Set;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
-import javax.script.Bindings;
 import javax.security.auth.callback.Callback;
 
 import org.forgerock.am.identity.application.LegacyIdentityService;
@@ -54,8 +48,6 @@ import org.forgerock.oauth.OAuthClient;
 import org.forgerock.oauth.OAuthException;
 import org.forgerock.oauth.UserInfo;
 import org.forgerock.oauth.clients.apple.AppleClient;
-import org.forgerock.oauth.clients.oauth2.OAuth2Client;
-import org.forgerock.oauth.clients.oidc.OpenIDConnectClient;
 import org.forgerock.oauth.clients.twitter.TwitterClient;
 import org.forgerock.openam.annotations.sm.Attribute;
 import org.forgerock.openam.auth.node.api.Action;
@@ -63,34 +55,24 @@ import org.forgerock.openam.auth.node.api.InputState;
 import org.forgerock.openam.auth.node.api.Node;
 import org.forgerock.openam.auth.node.api.NodeProcessException;
 import org.forgerock.openam.auth.node.api.OutputState;
-import org.forgerock.openam.auth.node.api.StaticOutcomeProvider;
 import org.forgerock.openam.auth.node.api.TreeContext;
 import org.forgerock.openam.auth.nodes.helpers.IdmIntegrationHelper;
 import org.forgerock.openam.auth.nodes.oauth.SharedStateAdaptor;
 import org.forgerock.openam.auth.nodes.oauth.SocialOAuth2Helper;
-import org.forgerock.openam.authentication.callbacks.IdPCallback;
 import org.forgerock.openam.authentication.modules.common.mapping.DefaultAccountProvider;
 import org.forgerock.openam.core.realms.Realm;
 import org.forgerock.openam.integration.idm.IdmIntegrationService;
 import org.forgerock.openam.scripting.application.ScriptEvaluator;
 import org.forgerock.openam.scripting.application.ScriptEvaluatorFactory;
-import org.forgerock.openam.scripting.domain.Script;
-import org.forgerock.openam.scripting.domain.ScriptBindings;
-import org.forgerock.openam.scripting.domain.ScriptingLanguage;
 import org.forgerock.openam.social.idp.OAuthClientConfig;
 import org.forgerock.openam.social.idp.OpenIDConnectClientConfig;
 import org.forgerock.openam.social.idp.SocialIdentityProviders;
-import org.forgerock.openam.social.idp.SocialProviderHandlerNodeBindings;
-import org.forgerock.openam.utils.StringUtils;
-import org.forgerock.util.i18n.PreferredLocales;
-import org.mozilla.javascript.NativeJavaObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.google.common.collect.ImmutableList;
 import com.google.inject.assistedinject.Assisted;
 import com.iplanet.dpro.session.service.SessionService;
 import com.sun.identity.authentication.service.AuthD;
@@ -166,90 +148,50 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
 
   @Override
   public Action process(TreeContext context) throws NodeProcessException {
-    logger.debug("Social provider redirect node started");
+    logger.error("Social provider redirect node started");
 
     if (!context.sharedState.isDefined(SELECTED_IDP)) {
+      logger.error(SELECTED_IDP + " is missing in the state");
       throw new NodeProcessException(SELECTED_IDP + " not found in state");
     }
     final String selectedIdp = context.sharedState.get(SELECTED_IDP).asString();
+    logger.error("Getting provider");
     final OAuthClientConfig idpConfig = Optional.ofNullable(providerConfigStore.getProviders(realm)
             .get(selectedIdp))
         .orElseThrow(() -> new NodeProcessException("Selected provider does not exist."));
+    logger.error("Creating new OAuth client");
     final OAuthClient client = authModuleHelper.newOAuthClient(realm, idpConfig);
+    logger.error("Getting datastore");
     final DataStore dataStore = SharedStateAdaptor.toDatastore(json(context.sharedState));
 
+    logger.error("Handling callback");
     Action action = handleCallback(context, selectedIdp, idpConfig, client, dataStore);
     if (action != null) {
+      logger.error("Action is not null, returning action");
       return action;
     }
 
+    logger.error("Checking if request object should be passed.");
     if (authModuleHelper.shouldPassRequestObject(idpConfig)) {
       authModuleHelper.passRequestObject(context.request.servletRequest, realm,
           (OpenIDConnectClientConfig) idpConfig, dataStore);
     }
 
-    // NOTE: changed from original
-//    if (config.clientType() == NATIVE) {
-//      logger.debug("Sending Social Login callback");
-//      return send(prepareIdPCallback(idpConfig, dataStore)).build();
-//    }
-    logger.debug("Sending redirect callback");
+    logger.error("Sending redirect callback");
     return send(prepareRedirectCallback(client, dataStore)).build();
   }
 
   private Action handleCallback(TreeContext context, String selectedIdp, OAuthClientConfig idpConfig,
       OAuthClient client, DataStore dataStore) throws NodeProcessException {
-    // NOTE: changed from original
-//    if (config.clientType() == NATIVE) {
-//      //Handle IdPCallback
-//      return handleIdPCallback(context, client, idpConfig, selectedIdp, dataStore);
-//    }
     //Handle redirect from idp.
     return handleRedirect(context, client, idpConfig, selectedIdp, dataStore);
-  }
-
-  private Action handleIdPCallback(TreeContext context, OAuthClient client,
-      OAuthClientConfig idpConfig, String selectedIdp,
-      DataStore dataStore) throws NodeProcessException {
-
-    Optional<IdPCallback> opt = context.getCallback(IdPCallback.class);
-    if (opt.isPresent()) {
-      IdPCallback callback = opt.get();
-      final HashMap<String, List<String>> parameters = new HashMap<>();
-
-      parameters.put(OAuth2Client.TOKEN_TYPE, Collections.singletonList(callback.getTokenType()));
-      if (callback.getToken().equals(FORM_POST_ENTRY)) {
-        // During non iOS app flows Apple sends the user info as request parameter along
-        // with authorization code, we read it here and set it on the parameters where
-        // the commons Apple client expects to find it.
-        parameters.put(AppleClient.USER, context.request.parameters.get(AppleClient.USER));
-        parameters.put(callback.getTokenType(), context.request.parameters.remove(CODE));
-      } else {
-        // During the native iOS app flow Apple native SDK receives the user info along with the ID Token
-        // and SDK sends it to AM as part of callback. Here we read it from the callback and set it on the
-        // parameters where the commons Apple client expects to find it.
-        parameters.put(AppleClient.USER, Collections.singletonList(callback.getUserInfo()));
-        parameters.put(callback.getTokenType(), Collections.singletonList(callback.getToken()));
-      }
-
-      try {
-        client.handleNativePostAuth(null, dataStore, parameters).getOrThrow();
-        return handleUser(context, client, idpConfig, selectedIdp, dataStore);
-      } catch (OAuthException e) {
-        logger.error("Failed to handle native post auth", e);
-        throw new NodeProcessException(e);
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        throw new NodeProcessException(e);
-      }
-    }
-    return null;
   }
 
   private Action handleRedirect(TreeContext context, OAuthClient client,
       OAuthClientConfig idpConfig, String selectedIdp,
       DataStore dataStore) throws NodeProcessException {
 
+    logger.error("Checking if OAuth parameters are present");
     if (isAllRequiredParametersPresent(client, context.request.parameters)) {
 
       final HashMap<String, List<String>> parameters = new HashMap<>();
@@ -263,8 +205,9 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
       parameters.put(AppleClient.USER, context.request.parameters.get(AppleClient.USER));
 
       try {
+        logger.error("Handling post authentication");
         client.handlePostAuth(dataStore, parameters).getOrThrow();
-        logger.debug("Social provider redirect node completed");
+        logger.error("Social provider redirect node completed");
 
         return handleUser(context, client, idpConfig, selectedIdp, dataStore);
 
@@ -274,6 +217,9 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         throw new NodeProcessException(e);
+      }
+      catch(Exception e) {
+    	  throw new NodeProcessException(e);
       }
     }
     return null;
@@ -285,9 +231,9 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
       return parameters.containsKey(OAUTH_TOKEN) && parameters.containsKey(OAUTH_VERIFIER);
     } else {
       if (parameters.containsKey(CODE)) {
-        logger.debug("User agent returned from social authorization server with a code parameter");
+        logger.error("User agent returned from social authorization server with a code parameter");
         if (!parameters.containsKey(STATE)) {
-          logger.debug("Request contained a code parameter but did not include a state parameter");
+          logger.error("Request contained a code parameter but did not include a state parameter");
           throw new NodeProcessException("Not having the state could mean that this request did not come from"
               + " the IDP");
         }
@@ -299,18 +245,14 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
 
   private Action handleUser(TreeContext context, OAuthClient client,
       OAuthClientConfig idpConfig, String selectedIdp,
-      DataStore dataStore) throws NodeProcessException, OAuthException {
+      DataStore dataStore) throws Exception {
+    logger.error("handleUser started, getting userinfo data");
     // Fetch the social profile from the IdP
     UserInfo profile = getUserInfo(client, dataStore);
 
-    // Normalize the social profile using the normalizer transform from the client's config
-    JsonValue normalized = evaluateScript(context, idpConfig.transform(), false, profile.getRawProfile());
-
-    // Transform the normalized profile to object data using the configured script
-    // NOTE: changed from original
-    //JsonValue objectData = evaluateScript(context, config.script(), true, normalized);
-    JsonValue objectData = evaluateScript(context, getTransformationScript(), true, normalized);
-
+    logger.error("Normalize claims for AM or IDM");
+    JsonValue objectData = normalizeClaims(idmIntegrationService.isEnabled(), selectedIdp, profile.getRawProfile());
+    logger.error("Store the profile in OBJECT_ATTRIBUTES");
     // Store the profile in OBJECT_ATTRIBUTES
     for (Map.Entry<String, Object> entry : objectData.asMap().entrySet()) {
       if (!entry.getKey().equals(config.usernameAttribute())) {
@@ -318,23 +260,31 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
             entry.getKey(), entry.getValue());
       }
     }
+
+    logger.error("Record the social identity subject in the profile");
     // Record the social identity subject in the profile, too
     String identity = selectedIdp + "-" + profile.getSubject();
 
+    logger.error("Getting contextId");
     Optional<String> contextId = idmIntegrationService.getAttributeFromContext(context,
             config.usernameAttribute())
         .map(JsonValue::asString);
 
+    logger.error("Getting user");
     Optional<JsonValue> user = getUser(context, identity);
 
     String resolvedId;
     if (contextId.isPresent()) {
+      logger.error("contextId is present");
       if (user.isPresent()
           && !contextId.get().equals(user.get().get(config.usernameAttribute()).asString())) {
+        logger.error("Account does not belong to user in share state.");
         throw new NodeProcessException("Account does not belong to user in share state.");
       }
+      logger.error("Setting resolvedId to contextId");
       resolvedId = contextId.get();
     } else {
+      logger.error("contextId is not available, setting resolveId to username attribute from user or objectData");
       resolvedId = user.isPresent()
           ? user.get().get(config.usernameAttribute()).asString()
           : objectData.get(config.usernameAttribute()).asString();
@@ -342,18 +292,25 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
           resolvedId);
     }
 
+    logger.error("resolveId is: " + resolvedId);
+
     if (resolvedId != null) {
+      logger.error("Setting username to resolvedId");
       context.sharedState.put(USERNAME, resolvedId);
     }
 
     if (idmIntegrationService.isEnabled()) {
+      logger.debug("if IDM is available, storing aliasList for account linking");
       idmIntegrationService.storeAttributeInState(context.transientState, ALIAS_LIST,
           getAliasList(context, identity, user, contextId));
     }
 
+    logger.error("Getting universalId");
     Optional<String> universalId = identityService.getUniversalId(resolvedId, realm.asPath(), IdType.USER);
 
+    logger.error("universalId is: " + universalId);
     if(user.isPresent()) {
+      logger.error("user is present, returning account exists");
       return goTo(SocialAuthOutcome.ACCOUNT_EXISTS.name())
           .withUniversalId(universalId)
           .replaceSharedState(context.sharedState.copy())
@@ -362,6 +319,7 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
           .build();
     } else {
       if(universalId.isPresent()) {
+        logger.error("universalId is present, returning account exists but no link");
         return goTo(SocialAuthOutcome.ACCOUNT_EXISTS_NO_LINK.name())
             .withUniversalId(universalId)
             .replaceSharedState(context.sharedState.copy())
@@ -369,6 +327,7 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
                 .putPermissive(ptr(SOCIAL_OAUTH_DATA).child(selectedIdp), dataStore.retrieveData()))
             .build();
       } else {
+        logger.error("Returning no account found");
         return goTo(SocialAuthOutcome.NO_ACCOUNT.name())
             .withUniversalId(universalId)
             .replaceSharedState(context.sharedState.copy())
@@ -400,13 +359,47 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
     try {
       return client.getUserInfo(dataStore).getOrThrow();
     } catch (OAuthException e) {
-      logger.debug("Failed to retrieve social profile data", e);
+      logger.error("Failed to retrieve social profile data", e);
       throw new NodeProcessException("Failed to retrieve social profile data", e);
     } catch (InterruptedException e) {
-      logger.debug("Interrupted while retrieving social profile data");
+      logger.error("Interrupted while retrieving social profile data");
       Thread.currentThread().interrupt();
       throw new NodeProcessException("Process interrupted", e);
     }
+  }
+
+  private JsonValue normalizeClaims(boolean isIdmEnabled, String selectedIdp, JsonValue inputClaims) {
+    JsonValue returnVal = json(object());
+    JsonValue sub = inputClaims.get("sub");
+
+    String theSubject = "";
+    if (sub.isString()) {
+      theSubject = sub.asString();
+    } else
+      theSubject = sub.toString();
+
+    returnVal.add("userName", theSubject);
+
+    if(isIdmEnabled) {
+      returnVal.add(ALIAS_LIST, selectedIdp + theSubject);
+    } else {
+      returnVal.add(AM_USER_ALIAS_LIST_ATTRIBUTE_NAME, selectedIdp + theSubject);
+    }
+
+    logger.error(inputClaims.get("address").toString());
+    logger.error(inputClaims.get("address").get("street_address").toString());
+
+    returnVal.add("mail", inputClaims.get("email"));
+    returnVal.add("telephoneNumber", inputClaims.get("phone_number"));
+    returnVal.add("givenName", inputClaims.get("given_name"));
+    returnVal.add("sn", inputClaims.get("family_name"));
+    returnVal.add("street", inputClaims.get("address").get("street_address"));
+    returnVal.add("l", inputClaims.get("address").get("locality"));
+    returnVal.add("st", inputClaims.get("address").get("region"));
+    returnVal.add("postalCode", inputClaims.get("address").get("postal_code"));
+    returnVal.add("co", inputClaims.get("address").get("country"));
+
+    return returnVal;
   }
 
   private Callback prepareRedirectCallback(OAuthClient client,
@@ -426,66 +419,6 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
     }
 
     return redirectCallback;
-  }
-
-  private Callback prepareIdPCallback(OAuthClientConfig idpConfig, DataStore dataStore)
-      throws NodeProcessException {
-
-    IdPCallback callback = MAPPER.convertValue(idpConfig, IdPCallback.class);
-    authModuleHelper.createNonce(idpConfig, dataStore);
-    //populate other parameters if exists in the dataStore
-    try {
-      callback.setRequest(dataStore.retrieveData().get(REQUEST).asString());
-      if (dataStore.retrieveData().isDefined(REQUEST_URI)) {
-        callback.setRequestUri(dataStore.retrieveData().get(REQUEST_URI).toString());
-      }
-      callback.setNonce(dataStore.retrieveData().get(OpenIDConnectClient.NONCE).asString());
-    } catch (OAuthException e) {
-      throw new NodeProcessException(e);
-    }
-    return callback;
-  }
-
-  private JsonValue evaluateScript(TreeContext context, Script script,
-      boolean normalized, JsonValue inputData) throws NodeProcessException {
-    ScriptBindings scriptBindings = SocialProviderHandlerNodeBindings.builder()
-        .withSelectedIDP(context.sharedState.get(SELECTED_IDP).asString())
-        .withInputData(inputData, normalized)
-        .withCallbacks(context.getAllCallbacks())
-        .withQueryParameters(convertParametersToModifiableObjects(context.request.parameters))
-        .withNodeState(context.getStateFor(this))
-        .withHeaders(convertHeadersToModifiableObjects(context.request.headers))
-        .withRealm(realm.asPath())
-        .withExistingSession(!StringUtils.isEmpty(context.request.ssoTokenId)
-            ? getSessionProperties(sessionServiceProvider.get(), context.request.ssoTokenId)
-            : null)
-        .withSharedState(context.sharedState.getObject())
-        .withTransientState(context.transientState.getObject())
-        .withLoggerReference(String.format("scripts.%s.%s.(%s)", SOCIAL_IDP_PROFILE_TRANSFORMATION_NAME,
-            script.getId(), script.getName()))
-        .withScriptName(script.getName())
-        .build();
-
-    Bindings binding = scriptBindings.convert(script.getEvaluatorVersion());
-
-    try {
-      JsonValue output = evaluateScript(script, binding);
-      logger.debug("script {} \n binding {}", script, binding);
-
-      return output;
-    } catch (javax.script.ScriptException e) {
-      logger.warn("Error evaluating the script", e);
-      throw new NodeProcessException(e);
-    }
-  }
-
-  private JsonValue evaluateScript(Script script, Bindings binding) throws javax.script.ScriptException {
-    if (script.getLanguage().equals(ScriptingLanguage.JAVASCRIPT)) {
-      NativeJavaObject result = scriptEvaluator.evaluateScript(script, binding, realm);
-      return (JsonValue) result.unwrap();
-    } else {
-      return scriptEvaluator.evaluateScript(script, binding, realm);
-    }
   }
 
   private List<String> getAliasList(TreeContext context, String identity, Optional<JsonValue> user,
@@ -530,12 +463,10 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
     };
   }
 
-  // NOTE: changed from original
-
   /**
    * Returns the transformation script that is applied to transform a normalized social profile to object data.
    */
-  protected abstract Script getTransformationScript();
+  //protected abstract Script getTransformationScript();
 
   /**
    * The possible outcomes for the SocialProviderHandlerNode.
@@ -560,17 +491,6 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
    * Configuration holder for the node.
    */
   public interface Config {
-    // NOTE: changed from original
-//    /**
-//     * The script configuration for transforming the normalized social profile to OBJECT_ATTRIBUTES data in
-//     * the shared state.
-//     *
-//     * @return The script configuration
-//     */
-//    @Attribute(order = 100, validators = {RequiredValueValidator.class})
-//    @ScriptContext(SOCIAL_IDP_PROFILE_TRANSFORMATION_NAME)
-//    Script script();
-
     /**
      * The attribute in which username may be found.
      *
@@ -579,37 +499,6 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
     @Attribute(order = 300, validators = {RequiredValueValidator.class})
     default String usernameAttribute() {
       return DEFAULT_IDM_IDENTITY_ATTRIBUTE;
-    }
-
-    // NOTE: changed from original
-    // This is only supports for a small set of IDPs, so it is being commented out until P1 is supported in the SDK.
-//    /**
-//     * The client type used to authenticate with the identity provider.
-//     * Default to {@link ClientType#BROWSER}
-//     *
-//     * @return The client type
-//     */
-//    @Attribute(order = 400)
-//    default ClientType clientType() {
-//      return ClientType.BROWSER;
-//    }
-  }
-
-  /**
-   * Defines the possible outcomes from this node.
-   */
-  public static class SocialAuthOutcomeProvider implements StaticOutcomeProvider {
-    @Override
-    public List<Outcome> getOutcomes(PreferredLocales locales) {
-      ResourceBundle bundle = locales.getBundleInPreferredLocale(BUNDLE,
-          SocialAuthOutcomeProvider.class.getClassLoader());
-      return ImmutableList.of(
-          new Outcome(SocialAuthOutcome.ACCOUNT_EXISTS.name(),
-              bundle.getString("accountExistsOutcome")),
-          new Outcome(SocialAuthOutcome.ACCOUNT_EXISTS_NO_LINK.name(),
-                      bundle.getString("accountExistsNoLinkOutcome")),
-          new Outcome(SocialAuthOutcome.NO_ACCOUNT.name(),
-              bundle.getString("noAccountOutcome")));
     }
   }
 }

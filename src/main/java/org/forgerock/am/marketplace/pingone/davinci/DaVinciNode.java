@@ -1,7 +1,9 @@
 /*
- * This code is to be used exclusively in connection with ForgeRock’s software or services. 
- * ForgeRock only offers ForgeRock software or services to legal entities who have entered 
- * into a binding license agreement with ForgeRock. 
+ * This code is to be used exclusively in connection with Ping Identity Corporation software or services. 
+ * Ping Identity Corporation only offers such software or services to legal entities who have entered into 
+ * a binding license agreement with Ping Identity Corporation.
+ *
+ * Copyright 2024 Ping Identity Corporation. All Rights Reserved
  */
 package org.forgerock.am.marketplace.pingone.davinci;
 
@@ -45,7 +47,8 @@ import org.slf4j.LoggerFactory;
  * <a href="https://docs.pingidentity.com/r/en-us/davinci/davinci_api_flow_launch">here</a>.
  */
 @Node.Metadata(outcomeProvider = DaVinciNode.OutcomeProvider.class,
-    configClass = DaVinciNode.Config.class)
+    configClass = DaVinciNode.Config.class,
+    tags = { "marketplace", "trustnetwork" })
 public class DaVinciNode extends AbstractDecisionNode {
 
   private static final Logger logger = LoggerFactory.getLogger(DaVinciNode.class);
@@ -88,7 +91,6 @@ public class DaVinciNode extends AbstractDecisionNode {
 
   @Override
   public Action process(TreeContext context) throws NodeProcessException {
-
     // create the flow input based on the node state
     NodeState nodeState = context.getStateFor(this);
 

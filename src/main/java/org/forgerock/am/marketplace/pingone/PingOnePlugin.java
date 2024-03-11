@@ -1,7 +1,9 @@
 /*
- * This code is to be used exclusively in connection with ForgeRock’s software or services.
- * ForgeRock only offers ForgeRock software or services to legal entities who have entered
- * into a binding license agreement with ForgeRock.
+ * This code is to be used exclusively in connection with Ping Identity Corporation software or services. 
+ * Ping Identity Corporation only offers such software or services to legal entities who have entered into 
+ * a binding license agreement with Ping Identity Corporation.
+ *
+ * Copyright 2024 Ping Identity Corporation. All Rights Reserved
  */
 
 package org.forgerock.am.marketplace.pingone;
@@ -50,7 +52,7 @@ import org.slf4j.LoggerFactory;
  */
 public class PingOnePlugin extends AbstractNodeAmPlugin {
 
-	static private String currentVersion = "0.0.12";
+	static private String currentVersion = "0.0.37";
 	public static final String logAppender = "[Version: " + currentVersion + "][Marketplace] ";
 	private final Logger logger = LoggerFactory.getLogger(PingOnePlugin.class);
 	private String loggerPrefix = "[PingOnePlugin]" + PingOnePlugin.logAppender;
