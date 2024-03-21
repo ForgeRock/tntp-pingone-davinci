@@ -379,11 +379,13 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
       theSubject = sub.toString();
 
     returnVal.add("userName", theSubject);
-
+    
+    List<String> theAliasList = new ArrayList<String>();
+    theAliasList.add(selectedIdp + theSubject);
     if(isIdmEnabled) {
-      returnVal.add(ALIAS_LIST, selectedIdp + theSubject);
+      returnVal.add(ALIAS_LIST, theAliasList);
     } else {
-      returnVal.add(AM_USER_ALIAS_LIST_ATTRIBUTE_NAME, selectedIdp + theSubject);
+      returnVal.add(AM_USER_ALIAS_LIST_ATTRIBUTE_NAME, theAliasList);
     }
 
     logger.debug(inputClaims.get("address").toString());
