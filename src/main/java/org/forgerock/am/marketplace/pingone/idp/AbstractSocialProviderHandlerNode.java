@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -369,7 +370,7 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
   }
 
   private JsonValue normalizeClaims(boolean isIdmEnabled, String selectedIdp, JsonValue inputClaims) {
-    JsonValue returnVal = json(object());
+    JsonValue returnVal = new JsonValue(new LinkedHashMap<String, Object>(1));//json(object());
     JsonValue sub = inputClaims.get("sub");
 
     String theSubject = "";
@@ -387,19 +388,16 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
     } else {
       returnVal.add(AM_USER_ALIAS_LIST_ATTRIBUTE_NAME, theAliasList);
     }
-
-    logger.debug(inputClaims.get("address").toString());
-    logger.debug(inputClaims.get("address").get("street_address").toString());
-
-    returnVal.add("mail", inputClaims.get("email"));
-    returnVal.add("telephoneNumber", inputClaims.get("phone_number"));
-    returnVal.add("givenName", inputClaims.get("given_name"));
-    returnVal.add("sn", inputClaims.get("family_name"));
-    returnVal.add("street", inputClaims.get("address").get("street_address"));
-    returnVal.add("l", inputClaims.get("address").get("locality"));
-    returnVal.add("st", inputClaims.get("address").get("region"));
-    returnVal.add("postalCode", inputClaims.get("address").get("postal_code"));
-    returnVal.add("co", inputClaims.get("address").get("country"));
+    
+    returnVal.addIfNotNull("mail", inputClaims.get("email").getObject());
+    returnVal.addIfNotNull("telephoneNumber", inputClaims.get("phone_number").getObject());
+    returnVal.addIfNotNull("givenName", inputClaims.get("given_name").getObject());
+    returnVal.addIfNotNull("sn", inputClaims.get("family_name").getObject());
+    returnVal.addIfNotNull("street", inputClaims.get("address").get("street_address").getObject());
+    returnVal.addIfNotNull("l", inputClaims.get("address").get("locality").getObject());
+    returnVal.addIfNotNull("st", inputClaims.get("address").get("region").getObject());
+    returnVal.addIfNotNull("postalCode", inputClaims.get("address").get("postal_code").getObject());
+    returnVal.addIfNotNull("co", inputClaims.get("address").get("country").getObject());
 
     return returnVal;
   }
