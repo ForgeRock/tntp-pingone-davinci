@@ -136,34 +136,34 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
   @Override
   public Action process(TreeContext context) {
     try {
-      logger.error(loggerPrefix + "Started");
+      logger.debug(loggerPrefix + "Started");
       context.getStateFor(this).putShared(IdmIntegrationService.SELECTED_IDP, PingOneIdentityProviders.PING_ONE_IDP_NAME);
-      logger.error(loggerPrefix + "Calling super process");
+      logger.debug(loggerPrefix + "Calling super process");
       Action action = super.process(context);
       for (Callback callback : action.callbacks)
       {
-        logger.error(loggerPrefix + "Checking if callback is redirectCallback");
+        logger.debug(loggerPrefix + "Checking if callback is redirectCallback");
         if (callback instanceof RedirectCallback)
         {
-          logger.error(loggerPrefix + "Sending PAR request");
+          logger.debug(loggerPrefix + "Sending PAR request");
           // send PAR request
           RedirectCallback redirectCallback = (RedirectCallback) callback;
           String redirectUrl = redirectCallback.getRedirectUrl();
           String parRequestUri;
           parRequestUri = sendParRequest(context, redirectUrl).getOrThrow();
 
-          logger.error(loggerPrefix + "Setting the PAR request URI");
+          logger.debug(loggerPrefix + "Setting the PAR request URI");
           // update the RedirectCallback to include PAR URI
           String parRedirectUrl = redirectUrl + "&request_uri=" + parRequestUri;
           redirectCallback.setRedirectUrl(parRedirectUrl);
         }
       }
-      logger.error(loggerPrefix + "Process end");
+      logger.debug(loggerPrefix + "Process end");
       return action;
     }
     catch (Exception ex) {
       String stackTrace = org.apache.commons.lang.exception.ExceptionUtils.getStackTrace(ex);
-      logger.error(loggerPrefix + "Exception occurred: " + stackTrace);
+      logger.error(loggerPrefix + "Exception occurred: ", ex);
       context.getStateFor(this).putTransient(loggerPrefix + "Exception", ex.getMessage());
       context.getStateFor(this).putTransient(loggerPrefix + "StackTrace", stackTrace);
       return Action.goTo(ERROR).build();
