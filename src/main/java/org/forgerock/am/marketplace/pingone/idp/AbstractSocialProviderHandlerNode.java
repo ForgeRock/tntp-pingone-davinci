@@ -385,19 +385,28 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
     theAliasList.add(selectedIdp + "-" + theSubject);
     if(isIdmEnabled) {
       returnVal.add(ALIAS_LIST, theAliasList);
+      returnVal.addIfNotNull("postalAddress", inputClaims.get("address").get("street_address").getObject());
+      returnVal.addIfNotNull("city", inputClaims.get("address").get("locality").getObject());
+      returnVal.addIfNotNull("country", inputClaims.get("address").get("country").getObject());
+      returnVal.addIfNotNull("stateProvince", inputClaims.get("address").get("region").getObject());
+      
     } else {
       returnVal.add(AM_USER_ALIAS_LIST_ATTRIBUTE_NAME, theAliasList);
+      returnVal.addIfNotNull("street", inputClaims.get("address").get("street_address").getObject());
+      returnVal.addIfNotNull("l", inputClaims.get("address").get("locality").getObject());
+      returnVal.addIfNotNull("co", inputClaims.get("address").get("country").getObject());
+      returnVal.addIfNotNull("st", inputClaims.get("address").get("region").getObject());
     }
     
     returnVal.addIfNotNull("mail", inputClaims.get("email").getObject());
     returnVal.addIfNotNull("telephoneNumber", inputClaims.get("phone_number").getObject());
     returnVal.addIfNotNull("givenName", inputClaims.get("given_name").getObject());
     returnVal.addIfNotNull("sn", inputClaims.get("family_name").getObject());
-    returnVal.addIfNotNull("street", inputClaims.get("address").get("street_address").getObject());
-    returnVal.addIfNotNull("l", inputClaims.get("address").get("locality").getObject());
-    returnVal.addIfNotNull("st", inputClaims.get("address").get("region").getObject());
+    
+    
+    
     returnVal.addIfNotNull("postalCode", inputClaims.get("address").get("postal_code").getObject());
-    returnVal.addIfNotNull("co", inputClaims.get("address").get("country").getObject());
+    
 
     return returnVal;
   }
