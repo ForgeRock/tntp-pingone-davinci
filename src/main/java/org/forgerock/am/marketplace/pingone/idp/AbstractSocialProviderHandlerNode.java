@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -148,36 +149,36 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
 
   @Override
   public Action process(TreeContext context) throws NodeProcessException {
-    logger.error("Social provider redirect node started");
+    logger.debug("Social provider redirect node started");
 
     if (!context.sharedState.isDefined(SELECTED_IDP)) {
-      logger.error(SELECTED_IDP + " is missing in the state");
+      logger.debug(SELECTED_IDP + " is missing in the state");
       throw new NodeProcessException(SELECTED_IDP + " not found in state");
     }
     final String selectedIdp = context.sharedState.get(SELECTED_IDP).asString();
-    logger.error("Getting provider");
+    logger.debug("Getting provider");
     final OAuthClientConfig idpConfig = Optional.ofNullable(providerConfigStore.getProviders(realm)
             .get(selectedIdp))
         .orElseThrow(() -> new NodeProcessException("Selected provider does not exist."));
-    logger.error("Creating new OAuth client");
+    logger.debug("Creating new OAuth client");
     final OAuthClient client = authModuleHelper.newOAuthClient(realm, idpConfig);
-    logger.error("Getting datastore");
+    logger.debug("Getting datastore");
     final DataStore dataStore = SharedStateAdaptor.toDatastore(json(context.sharedState));
 
-    logger.error("Handling callback");
+    logger.debug("Handling callback");
     Action action = handleCallback(context, selectedIdp, idpConfig, client, dataStore);
     if (action != null) {
-      logger.error("Action is not null, returning action");
+      logger.debug("Action is not null, returning action");
       return action;
     }
 
-    logger.error("Checking if request object should be passed.");
+    logger.debug("Checking if request object should be passed.");
     if (authModuleHelper.shouldPassRequestObject(idpConfig)) {
       authModuleHelper.passRequestObject(context.request.servletRequest, realm,
           (OpenIDConnectClientConfig) idpConfig, dataStore);
     }
 
-    logger.error("Sending redirect callback");
+    logger.debug("Sending redirect callback");
     return send(prepareRedirectCallback(client, dataStore)).build();
   }
 
@@ -191,7 +192,7 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
       OAuthClientConfig idpConfig, String selectedIdp,
       DataStore dataStore) throws NodeProcessException {
 
-    logger.error("Checking if OAuth parameters are present");
+    logger.debug("Checking if OAuth parameters are present");
     if (isAllRequiredParametersPresent(client, context.request.parameters)) {
 
       final HashMap<String, List<String>> parameters = new HashMap<>();
@@ -205,9 +206,9 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
       parameters.put(AppleClient.USER, context.request.parameters.get(AppleClient.USER));
 
       try {
-        logger.error("Handling post authentication");
+        logger.debug("Handling post authentication");
         client.handlePostAuth(dataStore, parameters).getOrThrow();
-        logger.error("Social provider redirect node completed");
+        logger.debug("Social provider redirect node completed");
 
         return handleUser(context, client, idpConfig, selectedIdp, dataStore);
 
@@ -231,9 +232,9 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
       return parameters.containsKey(OAUTH_TOKEN) && parameters.containsKey(OAUTH_VERIFIER);
     } else {
       if (parameters.containsKey(CODE)) {
-        logger.error("User agent returned from social authorization server with a code parameter");
+        logger.debug("User agent returned from social authorization server with a code parameter");
         if (!parameters.containsKey(STATE)) {
-          logger.error("Request contained a code parameter but did not include a state parameter");
+          logger.debug("Request contained a code parameter but did not include a state parameter");
           throw new NodeProcessException("Not having the state could mean that this request did not come from"
               + " the IDP");
         }
@@ -246,13 +247,13 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
   private Action handleUser(TreeContext context, OAuthClient client,
       OAuthClientConfig idpConfig, String selectedIdp,
       DataStore dataStore) throws Exception {
-    logger.error("handleUser started, getting userinfo data");
+    logger.debug("handleUser started, getting userinfo data");
     // Fetch the social profile from the IdP
     UserInfo profile = getUserInfo(client, dataStore);
 
-    logger.error("Normalize claims for AM or IDM");
+    logger.debug("Normalize claims for AM or IDM");
     JsonValue objectData = normalizeClaims(idmIntegrationService.isEnabled(), selectedIdp, profile.getRawProfile());
-    logger.error("Store the profile in OBJECT_ATTRIBUTES");
+    logger.debug("Store the profile in OBJECT_ATTRIBUTES");
     // Store the profile in OBJECT_ATTRIBUTES
     for (Map.Entry<String, Object> entry : objectData.asMap().entrySet()) {
       if (!entry.getKey().equals(config.usernameAttribute())) {
@@ -261,30 +262,30 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
       }
     }
 
-    logger.error("Record the social identity subject in the profile");
+    logger.debug("Record the social identity subject in the profile");
     // Record the social identity subject in the profile, too
     String identity = selectedIdp + "-" + profile.getSubject();
 
-    logger.error("Getting contextId");
+    logger.debug("Getting contextId");
     Optional<String> contextId = idmIntegrationService.getAttributeFromContext(context,
             config.usernameAttribute())
         .map(JsonValue::asString);
 
-    logger.error("Getting user");
+    logger.debug("Getting user");
     Optional<JsonValue> user = getUser(context, identity);
 
     String resolvedId;
     if (contextId.isPresent()) {
-      logger.error("contextId is present");
+      logger.debug("contextId is present");
       if (user.isPresent()
           && !contextId.get().equals(user.get().get(config.usernameAttribute()).asString())) {
-        logger.error("Account does not belong to user in share state.");
+        logger.debug("Account does not belong to user in share state.");
         throw new NodeProcessException("Account does not belong to user in share state.");
       }
-      logger.error("Setting resolvedId to contextId");
+      logger.debug("Setting resolvedId to contextId");
       resolvedId = contextId.get();
     } else {
-      logger.error("contextId is not available, setting resolveId to username attribute from user or objectData");
+      logger.debug("contextId is not available, setting resolveId to username attribute from user or objectData");
       resolvedId = user.isPresent()
           ? user.get().get(config.usernameAttribute()).asString()
           : objectData.get(config.usernameAttribute()).asString();
@@ -292,10 +293,10 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
           resolvedId);
     }
 
-    logger.error("resolveId is: " + resolvedId);
+    logger.debug("resolveId is: " + resolvedId);
 
     if (resolvedId != null) {
-      logger.error("Setting username to resolvedId");
+      logger.debug("Setting username to resolvedId");
       context.sharedState.put(USERNAME, resolvedId);
     }
 
@@ -305,12 +306,12 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
           getAliasList(context, identity, user, contextId));
     }
 
-    logger.error("Getting universalId");
+    logger.debug("Getting universalId");
     Optional<String> universalId = identityService.getUniversalId(resolvedId, realm.asPath(), IdType.USER);
 
-    logger.error("universalId is: " + universalId);
+    logger.debug("universalId is: " + universalId);
     if(user.isPresent()) {
-      logger.error("user is present, returning account exists");
+      logger.debug("user is present, returning account exists");
       return goTo(SocialAuthOutcome.ACCOUNT_EXISTS.name())
           .withUniversalId(universalId)
           .replaceSharedState(context.sharedState.copy())
@@ -319,7 +320,7 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
           .build();
     } else {
       if(universalId.isPresent()) {
-        logger.error("universalId is present, returning account exists but no link");
+        logger.debug("universalId is present, returning account exists but no link");
         return goTo(SocialAuthOutcome.ACCOUNT_EXISTS_NO_LINK.name())
             .withUniversalId(universalId)
             .replaceSharedState(context.sharedState.copy())
@@ -327,7 +328,7 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
                 .putPermissive(ptr(SOCIAL_OAUTH_DATA).child(selectedIdp), dataStore.retrieveData()))
             .build();
       } else {
-        logger.error("Returning no account found");
+        logger.debug("Returning no account found");
         return goTo(SocialAuthOutcome.NO_ACCOUNT.name())
             .withUniversalId(universalId)
             .replaceSharedState(context.sharedState.copy())
@@ -369,7 +370,7 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
   }
 
   private JsonValue normalizeClaims(boolean isIdmEnabled, String selectedIdp, JsonValue inputClaims) {
-    JsonValue returnVal = json(object());
+    JsonValue returnVal = new JsonValue(new LinkedHashMap<String, Object>(1));//json(object());
     JsonValue sub = inputClaims.get("sub");
 
     String theSubject = "";
@@ -379,25 +380,33 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
       theSubject = sub.toString();
 
     returnVal.add("userName", theSubject);
-
+    
+    List<String> theAliasList = new ArrayList<String>();
+    theAliasList.add(selectedIdp + "-" + theSubject);
     if(isIdmEnabled) {
-      returnVal.add(ALIAS_LIST, selectedIdp + theSubject);
+      returnVal.add(ALIAS_LIST, theAliasList);
+      returnVal.addIfNotNull("postalAddress", inputClaims.get("address").get("street_address").getObject());
+      returnVal.addIfNotNull("city", inputClaims.get("address").get("locality").getObject());
+      returnVal.addIfNotNull("country", inputClaims.get("address").get("country").getObject());
+      returnVal.addIfNotNull("stateProvince", inputClaims.get("address").get("region").getObject());
+      
     } else {
-      returnVal.add(AM_USER_ALIAS_LIST_ATTRIBUTE_NAME, selectedIdp + theSubject);
+      returnVal.add(AM_USER_ALIAS_LIST_ATTRIBUTE_NAME, theAliasList);
+      returnVal.addIfNotNull("street", inputClaims.get("address").get("street_address").getObject());
+      returnVal.addIfNotNull("l", inputClaims.get("address").get("locality").getObject());
+      returnVal.addIfNotNull("co", inputClaims.get("address").get("country").getObject());
+      returnVal.addIfNotNull("st", inputClaims.get("address").get("region").getObject());
     }
-
-    logger.error(inputClaims.get("address").toString());
-    logger.error(inputClaims.get("address").get("street_address").toString());
-
-    returnVal.add("mail", inputClaims.get("email"));
-    returnVal.add("telephoneNumber", inputClaims.get("phone_number"));
-    returnVal.add("givenName", inputClaims.get("given_name"));
-    returnVal.add("sn", inputClaims.get("family_name"));
-    returnVal.add("street", inputClaims.get("address").get("street_address"));
-    returnVal.add("l", inputClaims.get("address").get("locality"));
-    returnVal.add("st", inputClaims.get("address").get("region"));
-    returnVal.add("postalCode", inputClaims.get("address").get("postal_code"));
-    returnVal.add("co", inputClaims.get("address").get("country"));
+    
+    returnVal.addIfNotNull("mail", inputClaims.get("email").getObject());
+    returnVal.addIfNotNull("telephoneNumber", inputClaims.get("phone_number").getObject());
+    returnVal.addIfNotNull("givenName", inputClaims.get("given_name").getObject());
+    returnVal.addIfNotNull("sn", inputClaims.get("family_name").getObject());
+    
+    
+    
+    returnVal.addIfNotNull("postalCode", inputClaims.get("address").get("postal_code").getObject());
+    
 
     return returnVal;
   }

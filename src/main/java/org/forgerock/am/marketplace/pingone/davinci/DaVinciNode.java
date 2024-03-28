@@ -142,9 +142,9 @@ public class DaVinciNode extends AbstractDecisionNode {
       }
     } catch (Exception ex) {
       String stackTrace = org.apache.commons.lang.exception.ExceptionUtils.getStackTrace(ex);
-      logger.error(loggerPrefix + "Exception occurred: " + stackTrace);
-      context.getStateFor(this).putShared(loggerPrefix + "Exception", new Date() + ": " + ex.getMessage());
-      context.getStateFor(this).putShared(loggerPrefix + "StackTrace", new Date() + ": " + stackTrace);
+      logger.error(loggerPrefix + "Exception occurred: ", ex);
+      context.getStateFor(this).putTransient(loggerPrefix + "Exception", new Date() + ": " + ex.getMessage());
+      context.getStateFor(this).putTransient(loggerPrefix + "StackTrace", new Date() + ": " + stackTrace);
       return Action.goTo(ERROR).build();
     }
 

@@ -61,6 +61,8 @@ import org.forgerock.openam.social.idp.OAuthClientConfig;
 import org.forgerock.openam.social.idp.OpenIDConnectClientConfig;
 import org.forgerock.openam.social.idp.RevocationOption;
 import org.forgerock.openam.social.idp.SocialIdentityProviders;
+import org.forgerock.secrets.GenericSecret;
+import org.forgerock.secrets.Purpose;
 import org.forgerock.services.context.RootContext;
 import org.forgerock.util.AsyncFunction;
 import org.forgerock.util.Function;
@@ -136,36 +138,36 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
   @Override
   public Action process(TreeContext context) {
     try {
-      logger.error(loggerPrefix + "Started");
+      logger.debug(loggerPrefix + "Started");
       context.getStateFor(this).putShared(IdmIntegrationService.SELECTED_IDP, PingOneIdentityProviders.PING_ONE_IDP_NAME);
-      logger.error(loggerPrefix + "Calling super process");
+      logger.debug(loggerPrefix + "Calling super process");
       Action action = super.process(context);
       for (Callback callback : action.callbacks)
       {
-        logger.error(loggerPrefix + "Checking if callback is redirectCallback");
+        logger.debug(loggerPrefix + "Checking if callback is redirectCallback");
         if (callback instanceof RedirectCallback)
         {
-          logger.error(loggerPrefix + "Sending PAR request");
+          logger.debug(loggerPrefix + "Sending PAR request");
           // send PAR request
           RedirectCallback redirectCallback = (RedirectCallback) callback;
           String redirectUrl = redirectCallback.getRedirectUrl();
           String parRequestUri;
           parRequestUri = sendParRequest(context, redirectUrl).getOrThrow();
 
-          logger.error(loggerPrefix + "Setting the PAR request URI");
+          logger.debug(loggerPrefix + "Setting the PAR request URI");
           // update the RedirectCallback to include PAR URI
           String parRedirectUrl = redirectUrl + "&request_uri=" + parRequestUri;
           redirectCallback.setRedirectUrl(parRedirectUrl);
         }
       }
-      logger.error(loggerPrefix + "Process end");
+      logger.debug(loggerPrefix + "Process end");
       return action;
     }
     catch (Exception ex) {
       String stackTrace = org.apache.commons.lang.exception.ExceptionUtils.getStackTrace(ex);
-      logger.error(loggerPrefix + "Exception occurred: " + stackTrace);
-      context.getStateFor(this).putShared(loggerPrefix + "Exception", ex.getMessage());
-      context.getStateFor(this).putShared(loggerPrefix + "StackTrace", stackTrace);
+      logger.error(loggerPrefix + "Exception occurred: ", ex);
+      context.getStateFor(this).putTransient(loggerPrefix + "Exception", ex.getMessage());
+      context.getStateFor(this).putTransient(loggerPrefix + "StackTrace", stackTrace);
       return Action.goTo(ERROR).build();
     }
   }
@@ -412,6 +414,12 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
     @Override
     public Optional<char[]> clientSecret() {return Optional.of(tntpPingOneConfig.p1APISecret().toCharArray()); }
 
+    @Override
+    public Optional<Purpose<GenericSecret>> clientSecretPurpose(){
+    	return Optional.of(Purpose.PASSWORD);
+    }
+    
+    
     @Override
     public String authorizationEndpoint() {
       return baseUrl + "/authorize";
