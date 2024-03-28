@@ -17,5 +17,5 @@
 
 This repository contains two nodes, see the specific documentation below:
 
-* [PingOne](https://github.com/ForgeRock/tntp-pingone-davinci/tree/cloudprep/docs/pingone)
-* [PingOne DaVinci API](https://github.com/ForgeRock/tntp-pingone-davinci/tree/cloudprep/docs/pingone_davinci_api)
+* [PingOne](https://github.com/ForgeRock/tntp-pingone-davinci/tree/master/docs/pingone)
+* [PingOne DaVinci API](https://github.com/ForgeRock/tntp-pingone-davinci/tree/master/docs/pingone_davinci_api)
