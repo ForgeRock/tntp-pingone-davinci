@@ -140,11 +140,9 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
     try {
       logger.debug(loggerPrefix + "Started");
       context.getStateFor(this).putShared(IdmIntegrationService.SELECTED_IDP, PingOneIdentityProviders.PING_ONE_IDP_NAME);
-      logger.debug(loggerPrefix + "Calling super process");
       Action action = super.process(context);
       for (Callback callback : action.callbacks)
       {
-        logger.debug(loggerPrefix + "Checking if callback is redirectCallback");
         if (callback instanceof RedirectCallback)
         {
           logger.debug(loggerPrefix + "Sending PAR request");
@@ -154,7 +152,6 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
           String parRequestUri;
           parRequestUri = sendParRequest(context, redirectUrl).getOrThrow();
 
-          logger.debug(loggerPrefix + "Setting the PAR request URI");
           // update the RedirectCallback to include PAR URI
           String parRedirectUrl = redirectUrl + "&request_uri=" + parRequestUri;
           redirectCallback.setRedirectUrl(parRedirectUrl);
@@ -544,6 +541,8 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
                       bundle.getString("accountExistsNoLinkOutcome")),
           new Outcome(SocialAuthOutcome.NO_ACCOUNT.name(),
                       bundle.getString("noAccountOutcome")),
+          new Outcome(SocialAuthOutcome.AUTH_INTERRUPTED.name(),
+                      bundle.getString("authInterruptedOutcome")),
           new Outcome(ERROR, bundle.getString("errorOutcome")));
     }
   }

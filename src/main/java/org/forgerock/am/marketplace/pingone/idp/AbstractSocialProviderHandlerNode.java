@@ -97,6 +97,7 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
   static final String ALIAS_LIST = "aliasList";
   private static final String BUNDLE = "org.forgerock.openam.auth.nodes.SocialProviderHandlerNode";
   private static final String AM_USER_ALIAS_LIST_ATTRIBUTE_NAME = "iplanet-am-user-alias-list";
+  private static final String EXPECT_PROFILE_INFORMATION = "expectProfileInformation";
   private static final ObjectMapper MAPPER = new ObjectMapper();
   private static final String FORM_POST_ENTRY = "form_post_entry";
 
@@ -149,37 +150,47 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
 
   @Override
   public Action process(TreeContext context) throws NodeProcessException {
-    logger.debug("Social provider redirect node started");
 
     if (!context.sharedState.isDefined(SELECTED_IDP)) {
-      logger.debug(SELECTED_IDP + " is missing in the state");
+      logger.error(SELECTED_IDP + " is missing in the state");
       throw new NodeProcessException(SELECTED_IDP + " not found in state");
     }
     final String selectedIdp = context.sharedState.get(SELECTED_IDP).asString();
-    logger.debug("Getting provider");
+
     final OAuthClientConfig idpConfig = Optional.ofNullable(providerConfigStore.getProviders(realm)
             .get(selectedIdp))
         .orElseThrow(() -> new NodeProcessException("Selected provider does not exist."));
-    logger.debug("Creating new OAuth client");
     final OAuthClient client = authModuleHelper.newOAuthClient(realm, idpConfig);
-    logger.debug("Getting datastore");
     final DataStore dataStore = SharedStateAdaptor.toDatastore(json(context.sharedState));
 
-    logger.debug("Handling callback");
     Action action = handleCallback(context, selectedIdp, idpConfig, client, dataStore);
     if (action != null) {
-      logger.debug("Action is not null, returning action");
+      context.sharedState.remove(EXPECT_PROFILE_INFORMATION);
       return action;
+    } else if (shouldExpectSocialProviderProfileInformation(context)) {
+      // If this block has been entered it means the user has navigated back to the SocialProviderHandler node
+      // without having performed a social authentication (back button or refreshed URL). OPENAM-20924
+      context.sharedState.remove(EXPECT_PROFILE_INFORMATION);
+      return goTo(SocialAuthOutcome.AUTH_INTERRUPTED.name()).build();
     }
 
-    logger.debug("Checking if request object should be passed.");
     if (authModuleHelper.shouldPassRequestObject(idpConfig)) {
       authModuleHelper.passRequestObject(context.request.servletRequest, realm,
           (OpenIDConnectClientConfig) idpConfig, dataStore);
     }
 
-    logger.debug("Sending redirect callback");
     return send(prepareRedirectCallback(client, dataStore)).build();
+  }
+
+  private boolean shouldExpectSocialProviderProfileInformation(TreeContext context) {
+    boolean expectProfileInformation;
+    if (context.sharedState.isDefined(EXPECT_PROFILE_INFORMATION)) {
+      expectProfileInformation = context.sharedState.get(EXPECT_PROFILE_INFORMATION).asBoolean();
+    } else {
+      context.sharedState.put(EXPECT_PROFILE_INFORMATION, true);
+      expectProfileInformation = false;
+    }
+    return expectProfileInformation;
   }
 
   private Action handleCallback(TreeContext context, String selectedIdp, OAuthClientConfig idpConfig,
@@ -192,7 +203,6 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
       OAuthClientConfig idpConfig, String selectedIdp,
       DataStore dataStore) throws NodeProcessException {
 
-    logger.debug("Checking if OAuth parameters are present");
     if (isAllRequiredParametersPresent(client, context.request.parameters)) {
 
       final HashMap<String, List<String>> parameters = new HashMap<>();
@@ -206,14 +216,11 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
       parameters.put(AppleClient.USER, context.request.parameters.get(AppleClient.USER));
 
       try {
-        logger.debug("Handling post authentication");
         client.handlePostAuth(dataStore, parameters).getOrThrow();
-        logger.debug("Social provider redirect node completed");
 
         return handleUser(context, client, idpConfig, selectedIdp, dataStore);
 
       } catch (OAuthException e) {
-        logger.error("Failed to handle post auth", e);
         throw new NodeProcessException(e);
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
@@ -232,9 +239,7 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
       return parameters.containsKey(OAUTH_TOKEN) && parameters.containsKey(OAUTH_VERIFIER);
     } else {
       if (parameters.containsKey(CODE)) {
-        logger.debug("User agent returned from social authorization server with a code parameter");
         if (!parameters.containsKey(STATE)) {
-          logger.debug("Request contained a code parameter but did not include a state parameter");
           throw new NodeProcessException("Not having the state could mean that this request did not come from"
               + " the IDP");
         }
@@ -247,13 +252,10 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
   private Action handleUser(TreeContext context, OAuthClient client,
       OAuthClientConfig idpConfig, String selectedIdp,
       DataStore dataStore) throws Exception {
-    logger.debug("handleUser started, getting userinfo data");
     // Fetch the social profile from the IdP
     UserInfo profile = getUserInfo(client, dataStore);
 
-    logger.debug("Normalize claims for AM or IDM");
     JsonValue objectData = normalizeClaims(idmIntegrationService.isEnabled(), selectedIdp, profile.getRawProfile());
-    logger.debug("Store the profile in OBJECT_ATTRIBUTES");
     // Store the profile in OBJECT_ATTRIBUTES
     for (Map.Entry<String, Object> entry : objectData.asMap().entrySet()) {
       if (!entry.getKey().equals(config.usernameAttribute())) {
@@ -262,30 +264,23 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
       }
     }
 
-    logger.debug("Record the social identity subject in the profile");
     // Record the social identity subject in the profile, too
     String identity = selectedIdp + "-" + profile.getSubject();
 
-    logger.debug("Getting contextId");
     Optional<String> contextId = idmIntegrationService.getAttributeFromContext(context,
             config.usernameAttribute())
         .map(JsonValue::asString);
 
-    logger.debug("Getting user");
     Optional<JsonValue> user = getUser(context, identity);
 
     String resolvedId;
     if (contextId.isPresent()) {
-      logger.debug("contextId is present");
       if (user.isPresent()
           && !contextId.get().equals(user.get().get(config.usernameAttribute()).asString())) {
-        logger.debug("Account does not belong to user in share state.");
         throw new NodeProcessException("Account does not belong to user in share state.");
       }
-      logger.debug("Setting resolvedId to contextId");
       resolvedId = contextId.get();
     } else {
-      logger.debug("contextId is not available, setting resolveId to username attribute from user or objectData");
       resolvedId = user.isPresent()
           ? user.get().get(config.usernameAttribute()).asString()
           : objectData.get(config.usernameAttribute()).asString();
@@ -293,25 +288,18 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
           resolvedId);
     }
 
-    logger.debug("resolveId is: " + resolvedId);
-
     if (resolvedId != null) {
-      logger.debug("Setting username to resolvedId");
       context.sharedState.put(USERNAME, resolvedId);
     }
 
     if (idmIntegrationService.isEnabled()) {
-      logger.debug("if IDM is available, storing aliasList for account linking");
       idmIntegrationService.storeAttributeInState(context.transientState, ALIAS_LIST,
           getAliasList(context, identity, user, contextId));
     }
 
-    logger.debug("Getting universalId");
     Optional<String> universalId = identityService.getUniversalId(resolvedId, realm.asPath(), IdType.USER);
 
-    logger.debug("universalId is: " + universalId);
     if(user.isPresent()) {
-      logger.debug("user is present, returning account exists");
       return goTo(SocialAuthOutcome.ACCOUNT_EXISTS.name())
           .withUniversalId(universalId)
           .replaceSharedState(context.sharedState.copy())
@@ -320,7 +308,6 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
           .build();
     } else {
       if(universalId.isPresent()) {
-        logger.debug("universalId is present, returning account exists but no link");
         return goTo(SocialAuthOutcome.ACCOUNT_EXISTS_NO_LINK.name())
             .withUniversalId(universalId)
             .replaceSharedState(context.sharedState.copy())
@@ -328,7 +315,6 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
                 .putPermissive(ptr(SOCIAL_OAUTH_DATA).child(selectedIdp), dataStore.retrieveData()))
             .build();
       } else {
-        logger.debug("Returning no account found");
         return goTo(SocialAuthOutcome.NO_ACCOUNT.name())
             .withUniversalId(universalId)
             .replaceSharedState(context.sharedState.copy())
@@ -360,10 +346,8 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
     try {
       return client.getUserInfo(dataStore).getOrThrow();
     } catch (OAuthException e) {
-      logger.error("Failed to retrieve social profile data", e);
       throw new NodeProcessException("Failed to retrieve social profile data", e);
     } catch (InterruptedException e) {
-      logger.error("Interrupted while retrieving social profile data");
       Thread.currentThread().interrupt();
       throw new NodeProcessException("Process interrupted", e);
     }
@@ -402,11 +386,7 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
     returnVal.addIfNotNull("telephoneNumber", inputClaims.get("phone_number").getObject());
     returnVal.addIfNotNull("givenName", inputClaims.get("given_name").getObject());
     returnVal.addIfNotNull("sn", inputClaims.get("family_name").getObject());
-    
-    
-    
     returnVal.addIfNotNull("postalCode", inputClaims.get("address").get("postal_code").getObject());
-    
 
     return returnVal;
   }
@@ -426,7 +406,6 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
       Thread.currentThread().interrupt();
       throw new NodeProcessException(e);
     }
-
     return redirectCallback;
   }
 
@@ -455,11 +434,14 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
         new OutputState(SOCIAL_OAUTH_DATA, json(object(
             field(SocialAuthOutcome.ACCOUNT_EXISTS.name(), true),
             field(SocialAuthOutcome.ACCOUNT_EXISTS_NO_LINK.name(), false),
-            field(SocialAuthOutcome.NO_ACCOUNT.name(), false))).asMap(Boolean.class)),
+            field(SocialAuthOutcome.NO_ACCOUNT.name(), false),
+            field(SocialAuthOutcome.AUTH_INTERRUPTED.name(), false))).asMap(Boolean.class)),
+
         new OutputState(USERNAME, json(object(
             field(SocialAuthOutcome.ACCOUNT_EXISTS.name(), true),
             field(SocialAuthOutcome.ACCOUNT_EXISTS_NO_LINK.name(), false),
-            field(SocialAuthOutcome.NO_ACCOUNT.name(), false))).asMap(Boolean.class))
+            field(SocialAuthOutcome.NO_ACCOUNT.name(), false),
+            field(SocialAuthOutcome.AUTH_INTERRUPTED.name(), false))).asMap(Boolean.class))
     };
   }
 
@@ -493,7 +475,10 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
      * Subject match not found.
      */
     NO_ACCOUNT,
-
+    /**
+     * Returned to this node without the necessary social auth parameters to continue.
+     */
+    AUTH_INTERRUPTED
   }
 
   /**

@@ -15,7 +15,7 @@
     <artifactId>TNTPPingOne</artifactId>
 
     <groupId>org.forgerock.am.marketplace</groupId>
-    <version>0.0.53</version>
+    <version>1.0.0</version>
     <name>PingOne</name>
     <description>PingOne Nodes - DaVinci and Federation</description>
 
