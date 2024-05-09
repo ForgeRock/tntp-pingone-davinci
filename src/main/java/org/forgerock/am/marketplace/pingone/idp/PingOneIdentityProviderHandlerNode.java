@@ -61,8 +61,6 @@ import org.forgerock.openam.social.idp.OAuthClientConfig;
 import org.forgerock.openam.social.idp.OpenIDConnectClientConfig;
 import org.forgerock.openam.social.idp.RevocationOption;
 import org.forgerock.openam.social.idp.SocialIdentityProviders;
-import org.forgerock.secrets.GenericSecret;
-import org.forgerock.secrets.Purpose;
 import org.forgerock.services.context.RootContext;
 import org.forgerock.util.AsyncFunction;
 import org.forgerock.util.Function;
@@ -410,12 +408,6 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
 
     @Override
     public Optional<char[]> clientSecret() {return Optional.of(tntpPingOneConfig.p1APISecret().toCharArray()); }
-
-    @Override
-    public Optional<Purpose<GenericSecret>> clientSecretPurpose(){
-    	return Optional.of(Purpose.PASSWORD);
-    }
-    
     
     @Override
     public String authorizationEndpoint() {

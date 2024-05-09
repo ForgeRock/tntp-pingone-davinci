@@ -95,11 +95,9 @@ import com.sun.identity.sm.RequiredValueValidator;
 abstract class AbstractSocialProviderHandlerNode implements Node {
   static final String SOCIAL_OAUTH_DATA = "socialOAuthData";
   static final String ALIAS_LIST = "aliasList";
-  private static final String BUNDLE = "org.forgerock.openam.auth.nodes.SocialProviderHandlerNode";
   private static final String AM_USER_ALIAS_LIST_ATTRIBUTE_NAME = "iplanet-am-user-alias-list";
   private static final String EXPECT_PROFILE_INFORMATION = "expectProfileInformation";
   private static final ObjectMapper MAPPER = new ObjectMapper();
-  private static final String FORM_POST_ENTRY = "form_post_entry";
 
   static {
     MAPPER.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -363,11 +361,12 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
     } else
       theSubject = sub.toString();
 
-    returnVal.add("userName", theSubject);
-    
-    List<String> theAliasList = new ArrayList<String>();
-    theAliasList.add(selectedIdp + "-" + theSubject);
+    returnVal.add(config.usernameAttribute(), theSubject);
+
     if(isIdmEnabled) {
+      List<String> theAliasList = new ArrayList<String>();
+      theAliasList.add(selectedIdp + "-" + theSubject);
+
       returnVal.add(ALIAS_LIST, theAliasList);
       returnVal.addIfNotNull("postalAddress", inputClaims.get("address").get("street_address").getObject());
       returnVal.addIfNotNull("city", inputClaims.get("address").get("locality").getObject());
@@ -375,7 +374,8 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
       returnVal.addIfNotNull("stateProvince", inputClaims.get("address").get("region").getObject());
       
     } else {
-      returnVal.add(AM_USER_ALIAS_LIST_ATTRIBUTE_NAME, theAliasList);
+      returnVal.add(AM_USER_ALIAS_LIST_ATTRIBUTE_NAME, selectedIdp + "-" + theSubject);
+      returnVal.addIfNotNull("uid", inputClaims.get("preferred_username").getObject());
       returnVal.addIfNotNull("street", inputClaims.get("address").get("street_address").getObject());
       returnVal.addIfNotNull("l", inputClaims.get("address").get("locality").getObject());
       returnVal.addIfNotNull("co", inputClaims.get("address").get("country").getObject());
@@ -386,6 +386,7 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
     returnVal.addIfNotNull("telephoneNumber", inputClaims.get("phone_number").getObject());
     returnVal.addIfNotNull("givenName", inputClaims.get("given_name").getObject());
     returnVal.addIfNotNull("sn", inputClaims.get("family_name").getObject());
+    returnVal.addIfNotNull("displayName", inputClaims.get("displayName").getObject());
     returnVal.addIfNotNull("postalCode", inputClaims.get("address").get("postal_code").getObject());
 
     return returnVal;
