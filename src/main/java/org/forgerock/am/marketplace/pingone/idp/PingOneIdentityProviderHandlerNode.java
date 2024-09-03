@@ -51,7 +51,6 @@ import org.forgerock.openam.auth.service.marketplace.TNTPPingOneConfig;
 import org.forgerock.openam.auth.service.marketplace.TNTPPingOneConfigChoiceValues;
 import org.forgerock.openam.core.realms.Realm;
 import org.forgerock.openam.integration.idm.IdmIntegrationService;
-import org.forgerock.openam.scripting.application.ScriptEvaluatorFactory;
 import org.forgerock.openam.scripting.domain.EvaluatorVersion;
 import org.forgerock.openam.scripting.domain.Script;
 import org.forgerock.openam.scripting.domain.ScriptException;
@@ -113,7 +112,6 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
    * @param authModuleHelper       helper for oauth2
    * @param identityService        an instance of the IdentityService
    * @param realm                  the realm context
-   * @param scriptEvaluatorFactory factory for ScriptEvaluators
    * @param sessionServiceProvider provider of the session service
    * @param idmIntegrationService  service that provides connectivity to IDM
    * @param handler                HTTP handler for sending PAR requests
@@ -123,12 +121,10 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
                                             SocialOAuth2Helper authModuleHelper,
                                             LegacyIdentityService identityService,
                                             @Assisted Realm realm,
-                                            ScriptEvaluatorFactory scriptEvaluatorFactory,
                                             Provider<SessionService> sessionServiceProvider,
                                             IdmIntegrationService idmIntegrationService,
                                             @Named("CloseableHttpClientHandler") Handler handler) {
-    super(config, authModuleHelper, new PingOneIdentityProviders(config, TNTPPingOneConfigChoiceValues.getTNTPPingOneConfig(config.tntpPingOneConfigName())), identityService, realm,
-          scriptEvaluatorFactory, sessionServiceProvider, idmIntegrationService);
+    super(config, authModuleHelper, new PingOneIdentityProviders(config, TNTPPingOneConfigChoiceValues.getTNTPPingOneConfig(config.tntpPingOneConfigName())), identityService, realm, sessionServiceProvider, idmIntegrationService);
 
     this.config = config;
     this.handler = handler;
@@ -269,7 +265,8 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
     }
 
     // create the PAR request and send it
-    URI uri = URI.create(getPingOneBaseUrl(tntpPingOneConfig) + "/par");
+    // URI uri = URI.create(getPingOneBaseUrl(tntpPingOneConfig) + "/par");
+    URI uri = URI.create("http://localhost:3000/par");
     Request request = null;
 
     try {
@@ -465,8 +462,8 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
     }
 
     @Override
-    public String wellKnownEndpoint() {
-      return baseUrl + "/.well-known/openid-configuration";
+    public Optional<String> wellKnownEndpoint() {
+      return Optional.of(baseUrl + "/.well-known/openid-configuration");
     }
 
     @Override

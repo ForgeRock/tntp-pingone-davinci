@@ -63,8 +63,6 @@ import org.forgerock.openam.auth.nodes.oauth.SocialOAuth2Helper;
 import org.forgerock.openam.authentication.modules.common.mapping.DefaultAccountProvider;
 import org.forgerock.openam.core.realms.Realm;
 import org.forgerock.openam.integration.idm.IdmIntegrationService;
-import org.forgerock.openam.scripting.application.ScriptEvaluator;
-import org.forgerock.openam.scripting.application.ScriptEvaluatorFactory;
 import org.forgerock.openam.social.idp.OAuthClientConfig;
 import org.forgerock.openam.social.idp.OpenIDConnectClientConfig;
 import org.forgerock.openam.social.idp.SocialIdentityProviders;
@@ -110,7 +108,7 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
   private final SocialIdentityProviders providerConfigStore;
   private final LegacyIdentityService identityService;
   private final Realm realm;
-  private final ScriptEvaluator scriptEvaluator;
+  //private final ScriptEvaluator<LegacyScriptBindings> scriptEvaluator;
   private final Provider<SessionService> sessionServiceProvider;
   private final Config config;
   private final IdmIntegrationService idmIntegrationService;
@@ -123,7 +121,6 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
    * @param providerConfigStore    service containing social provider configurations
    * @param identityService        an instance of the IdentityService
    * @param realm                  the realm context
-   * @param scriptEvaluatorFactory factory for ScriptEvaluators
    * @param sessionServiceProvider provider of the session service
    * @param idmIntegrationService  service that provides connectivity to IDM
    */
@@ -133,7 +130,6 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
       SocialIdentityProviders providerConfigStore,
       LegacyIdentityService identityService,
       @Assisted Realm realm,
-      ScriptEvaluatorFactory scriptEvaluatorFactory,
       Provider<SessionService> sessionServiceProvider,
       IdmIntegrationService idmIntegrationService
   ) {
@@ -142,7 +138,6 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
     this.providerConfigStore = providerConfigStore;
     this.identityService = identityService;
     this.realm = realm;
-    this.scriptEvaluator = scriptEvaluatorFactory.create(SOCIAL_IDP_PROFILE_TRANSFORMATION);
     this.sessionServiceProvider = sessionServiceProvider;
     this.idmIntegrationService = idmIntegrationService;
   }
