@@ -266,7 +266,7 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
 
     // create the PAR request and send it
     // URI uri = URI.create(getPingOneBaseUrl(tntpPingOneConfig) + "/par");
-    URI uri = URI.create("http://localhost:3000/par");
+    URI uri = URI.create("http://davincitreenode.ping-devops.com:3000/par");
     Request request = null;
 
     try {
