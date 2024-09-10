@@ -15,7 +15,7 @@
     <artifactId>TNTPPingOne</artifactId>
 
     <groupId>org.forgerock.am.marketplace</groupId>
-    <version>0.0.56</version>
+    <version>0.0.64</version>
     <name>PingOne</name>
     <description>PingOne Nodes - DaVinci and Federation</description>
 
@@ -61,7 +61,8 @@
 		<dependency>
 			<groupId>org.forgerock.am</groupId>
 			<artifactId>auth-node-api</artifactId>
-			<scope>provided</scope>
+            <version>7.6.0-20240909.152533-585</version>
+			<scope>compile</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.forgerock.am</groupId>
@@ -98,7 +99,8 @@
         <dependency>
             <groupId>org.forgerock.am</groupId>
             <artifactId>service-config-api</artifactId>
-            <scope>provided</scope>
+            <version>7.6.0-20240909.152533-587</version>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>javax.servlet</groupId>

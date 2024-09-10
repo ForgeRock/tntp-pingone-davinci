@@ -24,7 +24,6 @@ import static org.forgerock.openam.integration.idm.IdmIntegrationService.IDPS;
 import static org.forgerock.openam.integration.idm.IdmIntegrationService.SELECTED_IDP;
 import static org.forgerock.openam.oauth2.OAuth2Constants.Params.CODE;
 import static org.forgerock.openam.oauth2.OAuth2Constants.Params.STATE;
-import static org.forgerock.openam.social.idp.SocialIdPScriptContext.SOCIAL_IDP_PROFILE_TRANSFORMATION;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -93,10 +92,8 @@ import com.sun.identity.sm.RequiredValueValidator;
 abstract class AbstractSocialProviderHandlerNode implements Node {
   static final String SOCIAL_OAUTH_DATA = "socialOAuthData";
   static final String ALIAS_LIST = "aliasList";
-  private static final String BUNDLE = "org.forgerock.openam.auth.nodes.SocialProviderHandlerNode";
   private static final String AM_USER_ALIAS_LIST_ATTRIBUTE_NAME = "iplanet-am-user-alias-list";
   private static final ObjectMapper MAPPER = new ObjectMapper();
-  private static final String FORM_POST_ENTRY = "form_post_entry";
 
   static {
     MAPPER.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -108,8 +105,6 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
   private final SocialIdentityProviders providerConfigStore;
   private final LegacyIdentityService identityService;
   private final Realm realm;
-  //private final ScriptEvaluator<LegacyScriptBindings> scriptEvaluator;
-  private final Provider<SessionService> sessionServiceProvider;
   private final Config config;
   private final IdmIntegrationService idmIntegrationService;
 
@@ -138,7 +133,6 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
     this.providerConfigStore = providerConfigStore;
     this.identityService = identityService;
     this.realm = realm;
-    this.sessionServiceProvider = sessionServiceProvider;
     this.idmIntegrationService = idmIntegrationService;
   }
 
@@ -466,11 +460,6 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
         new InputState(IDPS, false)
     };
   }
-
-  /**
-   * Returns the transformation script that is applied to transform a normalized social profile to object data.
-   */
-  //protected abstract Script getTransformationScript();
 
   /**
    * The possible outcomes for the SocialProviderHandlerNode.

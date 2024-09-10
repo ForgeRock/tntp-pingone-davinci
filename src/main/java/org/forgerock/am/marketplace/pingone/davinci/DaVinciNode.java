@@ -52,13 +52,13 @@ import org.slf4j.LoggerFactory;
 public class DaVinciNode extends AbstractDecisionNode {
 
   private static final Logger logger = LoggerFactory.getLogger(DaVinciNode.class);
-  private String loggerPrefix = "[DaVinciNode]" + PingOnePlugin.logAppender;
+  private final String loggerPrefix = "[DaVinciNode]" + PingOnePlugin.logAppender;
 
   private static final String BUNDLE = DaVinciNode.class.getName();
   private static final String ERROR = "ERROR";
 
   private final Config config;
-  private TNTPPingOneConfig tntpPingOneConfig;
+  private final TNTPPingOneConfig tntpPingOneConfig;
   private final DaVinciClient client;
 
   /**
