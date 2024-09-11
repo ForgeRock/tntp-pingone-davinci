@@ -61,8 +61,7 @@
 		<dependency>
 			<groupId>org.forgerock.am</groupId>
 			<artifactId>auth-node-api</artifactId>
-            <version>7.6.0-20240909.152533-585</version>
-			<scope>compile</scope>
+			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.forgerock.am</groupId>
@@ -99,8 +98,13 @@
         <dependency>
             <groupId>org.forgerock.am</groupId>
             <artifactId>service-config-api</artifactId>
-            <version>7.6.0-20240909.152533-587</version>
-            <scope>compile</scope>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>javax.servlet-api</artifactId>
+            <version>3.1.0</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>javax.servlet</groupId>
@@ -109,10 +113,8 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>javax.servlet</groupId>
-            <artifactId>javax.servlet-api</artifactId>
-            <version>3.1.0</version>
-            <scope>provided</scope>
+            <groupId>org.forgerock.am</groupId>
+            <artifactId>openam-social-idp</artifactId>
         </dependency>
         <dependency>
             <groupId>org.forgerock.openam.auth.service.marketplace</groupId>
