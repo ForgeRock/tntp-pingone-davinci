@@ -115,6 +115,7 @@
         <dependency>
             <groupId>org.forgerock.am</groupId>
             <artifactId>openam-social-idp</artifactId>
+            <version>${am.version}</version>
         </dependency>
         <dependency>
             <groupId>org.forgerock.openam.auth.service.marketplace</groupId>
