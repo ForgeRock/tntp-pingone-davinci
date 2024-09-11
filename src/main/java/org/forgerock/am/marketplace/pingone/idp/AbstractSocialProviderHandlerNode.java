@@ -24,7 +24,6 @@ import static org.forgerock.openam.integration.idm.IdmIntegrationService.IDPS;
 import static org.forgerock.openam.integration.idm.IdmIntegrationService.SELECTED_IDP;
 import static org.forgerock.openam.oauth2.OAuth2Constants.Params.CODE;
 import static org.forgerock.openam.oauth2.OAuth2Constants.Params.STATE;
-import static org.forgerock.openam.social.idp.SocialIdPScriptContext.SOCIAL_IDP_PROFILE_TRANSFORMATION;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -63,8 +62,6 @@ import org.forgerock.openam.auth.nodes.oauth.SocialOAuth2Helper;
 import org.forgerock.openam.authentication.modules.common.mapping.DefaultAccountProvider;
 import org.forgerock.openam.core.realms.Realm;
 import org.forgerock.openam.integration.idm.IdmIntegrationService;
-import org.forgerock.openam.scripting.application.ScriptEvaluator;
-import org.forgerock.openam.scripting.application.ScriptEvaluatorFactory;
 import org.forgerock.openam.social.idp.OAuthClientConfig;
 import org.forgerock.openam.social.idp.OpenIDConnectClientConfig;
 import org.forgerock.openam.social.idp.SocialIdentityProviders;
@@ -95,10 +92,8 @@ import com.sun.identity.sm.RequiredValueValidator;
 abstract class AbstractSocialProviderHandlerNode implements Node {
   static final String SOCIAL_OAUTH_DATA = "socialOAuthData";
   static final String ALIAS_LIST = "aliasList";
-  private static final String BUNDLE = "org.forgerock.openam.auth.nodes.SocialProviderHandlerNode";
   private static final String AM_USER_ALIAS_LIST_ATTRIBUTE_NAME = "iplanet-am-user-alias-list";
   private static final ObjectMapper MAPPER = new ObjectMapper();
-  private static final String FORM_POST_ENTRY = "form_post_entry";
 
   static {
     MAPPER.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -110,8 +105,6 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
   private final SocialIdentityProviders providerConfigStore;
   private final LegacyIdentityService identityService;
   private final Realm realm;
-  private final ScriptEvaluator scriptEvaluator;
-  private final Provider<SessionService> sessionServiceProvider;
   private final Config config;
   private final IdmIntegrationService idmIntegrationService;
 
@@ -123,7 +116,6 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
    * @param providerConfigStore    service containing social provider configurations
    * @param identityService        an instance of the IdentityService
    * @param realm                  the realm context
-   * @param scriptEvaluatorFactory factory for ScriptEvaluators
    * @param sessionServiceProvider provider of the session service
    * @param idmIntegrationService  service that provides connectivity to IDM
    */
@@ -133,7 +125,6 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
       SocialIdentityProviders providerConfigStore,
       LegacyIdentityService identityService,
       @Assisted Realm realm,
-      ScriptEvaluatorFactory scriptEvaluatorFactory,
       Provider<SessionService> sessionServiceProvider,
       IdmIntegrationService idmIntegrationService
   ) {
@@ -142,8 +133,6 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
     this.providerConfigStore = providerConfigStore;
     this.identityService = identityService;
     this.realm = realm;
-    this.scriptEvaluator = scriptEvaluatorFactory.create(SOCIAL_IDP_PROFILE_TRANSFORMATION);
-    this.sessionServiceProvider = sessionServiceProvider;
     this.idmIntegrationService = idmIntegrationService;
   }
 
@@ -471,11 +460,6 @@ abstract class AbstractSocialProviderHandlerNode implements Node {
         new InputState(IDPS, false)
     };
   }
-
-  /**
-   * Returns the transformation script that is applied to transform a normalized social profile to object data.
-   */
-  //protected abstract Script getTransformationScript();
 
   /**
    * The possible outcomes for the SocialProviderHandlerNode.
