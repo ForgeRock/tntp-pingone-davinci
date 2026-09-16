@@ -157,7 +157,7 @@ public class PingOneIdentityProviderHandlerNode extends AbstractSocialProviderHa
             logger.debug(loggerPrefix + "Process end");
             return action;
         } catch (Exception ex) {
-            String stackTrace = org.apache.commons.lang.exception.ExceptionUtils.getStackTrace(ex);
+            String stackTrace = org.apache.commons.lang3.exception.ExceptionUtils.getStackTrace(ex);
             logger.error(loggerPrefix + "Exception occurred: ", ex);
             context.getStateFor(this).putTransient(loggerPrefix + "Exception", ex.getMessage());
             context.getStateFor(this).putTransient(loggerPrefix + "StackTrace", stackTrace);
